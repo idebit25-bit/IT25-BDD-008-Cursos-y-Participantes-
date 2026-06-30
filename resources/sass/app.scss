@@ -1,0 +1,33 @@
+// Fonts
+@import url('https://fonts.bunny.net/css?family=Nunito');
+
+// Variables
+@import 'variables';
+
+// Bootstrap
+@import 'bootstrap/scss/bootstrap';
+
+// Global overrides for rounded buttons and elements (discrete)
+.btn, 
+.btn-action,
+.btn-action-c,
+.btn-action-p,
+.btn-action-edit,
+.btn-custom, 
+.btn-login, 
+.btn-primary, 
+.btn-secondary, 
+.btn-success, 
+.btn-danger, 
+.btn-warning, 
+.btn-info, 
+.btn-link,
+button, 
+select,
+.form-control,
+.input-group,
+.input-group-text,
+.pagination .page-link,
+.page-link {
+    border-radius: 6px !important;
+}

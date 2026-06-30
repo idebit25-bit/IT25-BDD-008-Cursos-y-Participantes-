@@ -1,0 +1,854 @@
+@extends('home')
+@section('title', '- Lista de Cursos')
+@section('nav')
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Luego cargar Bootstrap y DataTables -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.bootstrap5.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap5.min.css">
+    <link rel="icon" type="image/x-icon" href="{{ asset('images/Logoibeb.ico') }}">
+
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #ffffff;
+            color: #333;
+        }
+
+        
+
+
+       
+
+        .logout-button {
+            background: none;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+        }
+
+        .table-container {
+            margin-top: 20px;
+        }
+
+        .drive-link a {
+            color: blue;
+            text-decoration: underline;
+            max-width: 200px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: inline-block;
+        }
+
+        .sidebar {
+            transition: transform 0.3s ease-in-out;
+        }
+
+        .sidebar.hidden {
+            transform: translateX(-100%);
+        }
+
+        
+
+        .content.expanded {
+            margin-left: 0;
+        }
+        .custom-btn {
+            background-color: #FF5733; /* Naranja */
+            border-color: #FF5733;
+            color: #FFFFFF;
+        }
+
+        .custom-btn:hover {
+            background-color: #E74C3C; /* Naranja más oscuro */
+            border-color: #E74C3C;
+        }
+        .button-container {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .button-container button {
+            white-space: nowrap;
+        }
+        /* Centrar la tabla y el botón "Crear Nuevo Curso" */
+        .table-container {
+            max-width: 1200px; /* Ancho máximo del contenedor de la tabla */
+            margin: 0 auto; /* Centrar el contenedor */
+            padding: 20px;
+        }
+
+        #cursosTable {
+        width: 100%; /* Ocupa el 100% del contenedor */
+        max-width: 100%; /* Evita que la tabla sea demasiado ancha */
+        table-layout: auto; /* Ajusta el ancho de las columnas automáticamente */
+        }
+
+        #toggleSidebar {
+            background-color: #28a745;
+            border: none;
+            padding: 10px 20px;
+            color: white;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+            #toggleSidebar:hover {
+            background-color: #218838;
+        }
+
+        .table-container {
+            max-width: 100%;
+            overflow-x: auto;
+        }
+
+        #cursosTable {
+            width: 100% !important;
+            table-layout: auto;
+        }
+
+        .search-help {
+            position: relative;
+            display: inline-block;
+            margin-left: 8px;
+            color: #6c757d;
+            cursor: help;
+        }
+
+        .search-help:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .tooltip-text {
+            visibility: hidden;
+            width: 300px;
+            background-color: #333;
+            color: #fff;
+            text-align: left;
+            border-radius: 6px;
+            padding: 10px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .tooltip-text::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #333 transparent transparent transparent;
+        }
+
+    </style>
+</head>
+<body>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+<br><br>
+    {{-- <!-- Sidebar -->
+    <div class="sidebar">
+        <h5>Filtros de Curso</h5>
+        <div class="filter-section">
+            <h6>Opciones de Visualización</h6>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="viewOption" id="defaultView" value="default" checked>
+                <label class="form-check-label" for="defaultView">
+                    Vista Predeterminada
+                </label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="viewOption" id="driveView" value="drive">
+                <label class="form-check-label" for="driveView">
+                    Vista de Links Drive
+                </label>
+            </div>
+        </div>
+        <div class="filter-section">
+            <h6>Filtros Adicionales</h6>
+            <div class="mb-3">
+                <label for="instructorFilter" class="form-label">Instructor</label>
+             <select id="instructorFilter" class="form-select">
+                <option value="">Todos los Instructores</option>
+                @php
+                    // Combina instructores de cursos y subcursos, elimina vacíos y duplicados
+                    $instructores = $cursos->pluck('InstructorResponsable')
+                        ->merge($subcursos->pluck('InstructorResponsable'))
+                        ->filter()
+                        ->unique()
+                        ->sort()
+                        ->values();
+                @endphp
+                @foreach($instructores as $instructor)
+<option value="{{ $instructor }}" {{ request('instructor') == $instructor ? 'selected' : '' }}>{{ $instructor }}</option>                @endforeach
+            </select>
+            </div>
+
+            <div class="mb-3">
+                <label for="costoFilter" class="form-label">Rango de Costo</label>
+                <div class="input-group">
+                    <input type="number" id="costMinFilter" class="form-control" placeholder="Mínimo">
+                    <input type="number" id="costMaxFilter" class="form-control" placeholder="Máximo">
+                </div>
+            </div>
+        </div>
+    </div>
+    <header>
+      
+        <div class="button-container">
+            <button id="toggleSidebar" class="btn btn-success">Mostrar/Ocultar Filtros</button>
+        </div>
+    </header> --}}
+    <div class="content">
+        <div class="container-fluid table-container">
+            <!-- Sección de Ruta de Archivos (oculta inicialmente) -->
+            @if(auth()->user()->puesto != 'Operacion')
+            <div id="rutaArchivosSection" style="display: none;">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title">Ruta de Archivos</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Botón para mostrar/ocultar las opciones -->
+                        <button id="editar-ruta-carpetas" class="btn btn-secondary mb-3">Editar Ruta de Carpetas</button>
+                        <!-- Contenedor de opciones (inicialmente oculto) -->
+                        <div id="opciones-rutas" style="display: none; max-width: 100%">
+                            <p>Este botón abre la carpeta de archivos que especifique.</p>
+                           <!-- Opción 1: Cargar Última Ruta o Escribir Manualmente -->
+                            <div class="mb-3">
+                                <label for="ruta_archivos_manual" class="form-label">Ruta de la Carpeta:</label>
+                                <div class="input-group">
+                                    <!-- Campo editable para ingresar la ruta manualmente -->
+                                    <input type="text" id="ruta_archivos_manual" class="form-control" placeholder="Ejemplo: C:/cursos/archivos">
+                                    <button id="cargar-ultima-ruta" class="btn btn-secondary" style="max-width: 100%">Cargar Última Ruta</button>
+                                    <button id="abrir-carpeta" class="btn btn-primary">Abrir Carpeta</button>
+                                </div>
+                            </div>
+                            <!-- Opción 2: Seleccionar una Ruta -->
+                            <div class="mb-3" style="max-width: 100%">
+                                <label for="lista-rutas" class="form-label">Selecciona una Ruta:</label>
+                                <div class="input-group">
+                                    <select id="lista-rutas" class="form-select" style="max-width: 100%">
+                                        <option value="">-- Selecciona una ruta --</option>
+                                    </select>
+                                    <button id="abrir-carpeta-seleccionada" class="btn btn-primary">Abrir Carpeta</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <form id="rutaArchivosForm">
+                            <div class="mb-3">
+                                <label for="nombreCarpeta" class="form-label">Nombre de la Carpeta</label>
+                                <input type="text" class="form-control" id="nombreCarpeta" required style="max-width: 100%">
+                            </div>
+                            <div class="mb-3">
+                                <label for="rutaCarpeta" class="form-label">Ruta de la Carpeta</label>
+                                <input type="text" class="form-control" id="rutaCarpeta" required style="max-width: 100%">
+                                <small class="text-muted">Selecciona la ruta donde se almacenarán los archivos de los cursos.</small>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Guardar Ruta</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            @endif
+
+            <!-- Ícono de configuraciones en la esquina inferior derecha -->
+            @if(auth()->user()->puesto != 'Operacion')
+            <div id="configButton" style="position: fixed; bottom: 20px; right: 20px; cursor: pointer; z-index: 1000;">
+                <img src="{{ asset('images/imagenuerca2.png') }}" alt="Configuraciones" style="width: 40px; height: 40px;">
+                <div style="text-align: center; font-size: 12px; color: #333; margin-top: 5px;">Ruta de Archivos</div>
+            </div>
+            @endif
+        </div>
+        <div class="container-fluid table-container">
+            <br>
+            <br>
+            
+            <h2 class="text-center mb-4">Lista de Cursos</h2>
+            @if(auth()->user()->puesto != 'Operacion')
+            <a href="{{ route('exportar.cursos.excel') }}" class="btn btn-success">Exportar a Excel</a>
+            <a href="{{ route('exportar.cursos.csv') }}" class="btn btn-primary">Exportar a CSV</a>
+            @endif
+
+            <table id="cursosTable" class="table table-bordered table-striped">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Nomenclatura de Curso</th> <!-- Índice 0 -->
+                        <th>Nombre del Curso</th> <!-- Índice 1 -->
+                        <th>Descripción</th> <!-- Índice 2 -->
+                        <th>Duración del Curso</th> <!-- Índice 3 -->
+                        <th>Fecha de Inicio</th> <!-- Índice 4 -->
+                        <th>Fecha de Término</th> <!-- Índice 5 -->
+                        <th>Costo</th> <!-- Índice 6 -->
+                        <th>Instructor</th> <!-- Índice 7 -->
+                        <th>Sin Fecha</th> <!-- Índice 8 -->
+                        <th>Drive Sin Fecha</th> <!-- Índice 9 -->
+                        <th>Facebook</th> <!-- Índice 10 -->
+                        <th>Drive Facebook</th> <!-- Índice 11 -->
+                        <th>LinkedIn</th> <!-- Índice 12 -->
+                        <th>Drive LinkedIn</th> <!-- Índice 13 -->
+                        <th>Instagram</th> <!-- Índice 14 -->
+                        <th>Drive Instagram</th> <!-- Índice 15 -->
+                        <th>Temario</th> <!-- Índice 16 -->
+                        <th>Drive Temario</th> <!-- Índice 17 -->
+                        <th>Itinerario</th> <!-- Índice 18 -->
+                        <th>Drive Itinerario</th> <!-- Índice 19 -->
+                        <th>Planeación</th> <!-- Índice 20 -->
+                        <th>Drive Planeación</th> <!-- Índice 21 -->
+                        <th>Digital</th> <!-- Índice 22 -->
+                        <th>Drive Digital</th> <!-- Índice 23 -->
+                        <th>Acciones</th> <!-- Índice 24 -->
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($cursos as $curso)
+                        <tr>
+                            <td>{{ $curso->Nomenclatura }}
+                            
+                            <button class="btn btn-sm btn-primary toggle-subcursos" data-id="{{ $curso->id }}" >+</button>
+                            </td>                            
+                            <td>{{ $curso->NombredelCurso }}</td>
+                            <td>{{ $curso->DescripciondeCurso }}</td>
+                            <td>{{ $curso->Duracioncurso }}</td>
+                            
+                            <td>${{ number_format($curso->CostodelCurso, 2) }}</td>
+                            <td>{{ $curso->InstructorResponsable }}</td>
+                            <td>{{ $curso->SinFecha }}</td>
+                            <td class="drive-link">
+                                @if($curso->DriveSinFecha)
+                                    <a href="{{ $curso->DriveSinFecha }}" target="_blank">Drive Sin Fecha</a>
+                                @endif
+                            </td>
+                            <td>{{ $curso->Facebook }}</td>
+                            <td class="drive-link">
+                                @if($curso->DriveFacebook)
+                                    <a href="{{ $curso->DriveFacebook }}" target="_blank">Drive Facebook</a>
+                                @endif
+                            </td>
+                            <td>{{ $curso->Linkedin }}</td>
+                            <td class="drive-link">
+                                @if($curso->DriveLinkedin)
+                                    <a href="{{ $curso->DriveLinkedin }}" target="_blank">Drive LinkedIn</a>
+                                @endif
+                            </td>
+                            <td>{{ $curso->Instagram }}</td>
+                            <td class="drive-link">
+                                @if($curso->DriveInstagram)
+                                    <a href="{{ $curso->DriveInstagram }}" target="_blank">Drive Instagram</a>
+                                @endif
+                            </td>
+                            <td>{{ $curso->Temario }}</td>
+                            <td class="drive-link">
+                                @if($curso->DriveTemario)
+                                    <a href="{{ $curso->DriveTemario }}" target="_blank">Drive Temario</a>
+                                @endif
+                            </td>
+                            <td>{{ $curso->Itinerario }}</td>
+                            <td class="drive-link">
+                                @if($curso->DriveItinerario)
+                                    <a href="{{ $curso->DriveItinerario }}" target="_blank">Drive Itinerario</a>
+                                @endif
+                            </td>
+                            <td>{{ $curso->Planeación }}</td>
+                            <td class="drive-link">
+                                @if($curso->DrivePlaneación)
+                                    <a href="{{ $curso->DrivePlaneación }}" target="_blank">Drive Planeación</a>
+                                @endif
+                            </td>
+                            <td>{{ $curso->Digital }}</td>
+                            <td class="drive-link">
+                                @if($curso->DriveDigital)
+                                    <a href="{{ $curso->DriveDigital }}" target="_blank">Drive Digital</a>
+                                @endif
+                            </td>
+                            <td>
+                                <a href="{{ route('cursos.show', $curso->id) }}" class="btn btn-sm btn-info">Ver</a>
+
+                                
+               @if(auth()->user()->puesto != 'Operacion' && is_null($curso->parent_id) && !is_null($curso->ruta))
+                    <form action="{{ route('curso.prepararSubcurso') }}" method="POST" style="display:inline;">
+                        @csrf
+                        <input type="hidden" name="idCursoPadre" value="{{ $curso->id }}">
+                        <input type="hidden" name="nombre_curso_padre" value="{{ $curso->NombredelCurso }}">
+                        <input type="hidden" name="ruta_nombre_carpeta" value="{{ $curso->ruta->rutacompleta }}">
+                        <button type="submit" class="btn btn-primary">Crear subcurso</button>
+                    </form>
+                @else
+                    <button class="btn btn-secondary" disabled>No disponible</button>
+                @endif
+
+                                @if(auth()->user()->puesto != 'Operacion') <a href="{{ route('cursos.edit', $curso->id) }}" class="btn btn-warning">Editar Curso</a>
+                                <form action="{{ route('cursos.destroy', $curso->id) }}" method="POST" style="display:inline-block;">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-danger" onclick="return confirm('¿Estás seguro de eliminar este curso?')">Eliminar</button>
+                                </form>
+                                @endif
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+    
+
+            </table>
+            @if(auth()->user()->puesto != 'Operacion')
+            <a href="{{ route('cursos.ruta') }}" class="btn btn-success">Crear Nuevo Curso</a>
+            @endif
+        </div>
+        
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap5.min.js"></script>
+
+    <script type="text/javascript">
+
+    $(document).ready(function() {
+        var table = $('#cursosTable').DataTable({
+                responsive: true,
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.10.24/i18n/Spanish.json'
+                },
+                pageLength: 15, // Cambia a 15 o más para mostrar todos tus registros
+                lengthMenu: [[10, 15, 25, 50, -1], [10, 15, 25, 50, "Todos"]],
+            columnDefs: [
+                {
+                    targets: [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23], // Columnas de enlaces de Drive
+                    visible: false // Ocultar por defecto
+                }
+            ],
+            dom: 'Bfrtip',
+            buttons: [
+                {
+                    extend: 'excelHtml5',
+                    text: 'Exportar a Excel',
+                    className: 'dt-button buttons-excel',
+                    exportOptions: {
+                        columns: ':not(:last-child)'
+                    }
+                },
+                {
+                    extend: 'pdfHtml5',
+                    text: 'Exportar a PDF',
+                    title: 'Lista de Cursos',
+                    className: 'dt-button buttons-pdf',
+                    orientation: 'landscape',
+                    pageSize: 'A4',
+                    exportOptions: {
+                        columns: ':not(:last-child)'
+                    },
+                    customize: function (doc) {
+                        doc.defaultStyle.fontSize = 8;
+                        doc.styles.tableHeader.fontSize = 10;
+                        doc.content[1].table.widths = Array(doc.content[1].table.body[0].length + 1).join('*').split('');
+                        doc.pageMargins = [5, 5, 5, 5];
+                        doc.content[1].table.pageBreak = 'auto';
+                    }
+                },
+                {
+                    extend: 'csvHtml5',
+                    text: 'Exportar a CSV',
+                    className: 'dt-button buttons-csv',
+                    exportOptions: {
+                        columns: ':not(:last-child)'
+                    }
+                }
+            ],
+            initComplete: function () {
+                $('.dt-buttons').hide();
+                $('.dataTables_filter').append(
+                    '<div class="search-help">' +
+                        '<i class="fas fa-question-circle"></i>' +
+                        '<div class="tooltip-text">' +
+                            '<strong>Búsqueda rápida:</strong><br>' +
+                            '• En todas las columnas<br>' +
+                            '• Búsqueda instantánea<br>' +
+                            '• Acepta múltiples términos<br>' +
+                            '• No distingue mayúsculas<br>' +
+                            '• Compatible con fechas' +
+                        '</div>' +
+                    '</div>'
+                );
+            }
+        });
+
+        // Toggle sidebar visibility
+        $('#toggleSidebar').on('click', function() {
+            $('.sidebar').toggleClass('hidden');
+            $('.content').toggleClass('expanded');
+            $('header').toggleClass('expanded');
+        });
+
+        // View Option Toggle
+        $('input[name="viewOption"]').on('change', function() {
+            var selectedView = $(this).val();
+
+            if (selectedView === 'drive') {
+                // Vista de enlaces de Drive: Mostrar solo las columnas de enlaces de Drive
+                table.columns().every(function(index) {
+                    if (index >= 8 && index <= 23) {  // Columnas de enlaces de Drive
+                        this.visible(true);
+                    } else {
+                        this.visible(false);
+                    }
+                });
+            } else {
+                // Vista predeterminada: Mostrar todas las columnas excepto los enlaces de Drive
+                table.columns().every(function(index) {
+                    if (index >= 8 && index <= 23) {  // Columnas de enlaces de Drive
+                        this.visible(false);
+                    } else {
+                        this.visible(true);
+                    }
+                });
+            }
+
+            // Forzar el redibujado de la tabla y ajustar el ancho de las columnas
+            table.columns.adjust().draw();
+        });
+
+        // Instructor Filter
+        // $('#instructorFilter').on('change', function() {
+        //     var instructor = $(this).val();
+        //     table.column(7).search(instructor).draw(); // Ajusta el índice de la columna del instructor
+        // });
+        $('#instructorFilter').on('change', function() {
+            var instructor = $(this).val();
+            var url = new URL(window.location.href);
+            if (instructor) {
+                url.searchParams.set('instructor', instructor);
+            } else {
+                url.searchParams.delete('instructor');
+            }
+            window.location.href = url.toString();
+        });
+
+        // Cost Range Filter
+        $('#costMinFilter, #costMaxFilter').on('keyup change', function() {
+            var minCost = parseFloat($('#costMinFilter').val()) || 0;
+            var maxCost = parseFloat($('#costMaxFilter').val()) || Number.MAX_VALUE;
+
+            // Limpiar filtros anteriores
+            $.fn.dataTable.ext.search.pop();
+
+            $.fn.dataTable.ext.search.push(
+                function(settings, data) {
+                    // Cambiar el índice de la columna de costo a 6
+                    var cost = parseFloat(data[6].replace('$', '').replace(',', '')) || 0;
+                    return (cost >= minCost && cost <= maxCost);
+                }
+            );
+            table.draw();
+        });
+
+        // Export buttons
+        $('#exportExcel').on('click', function() {
+            table.button('.buttons-excel').trigger();
+        });
+
+        $('#exportCSV').on('click', function() {
+            table.button('.buttons-csv').trigger();
+        });
+    });
+
+
+        // Mostrar u ocultar la sección de Ruta de Archivos
+        $('#configButton').on('click', function(e) {
+            e.preventDefault(); // Evitar que el enlace funcione
+            $('#rutaArchivosSection').toggle(); // Mostrar u ocultar la sección
+        });
+
+
+
+        let rutaConfigurada = false;
+
+        // Verificar si ya existe una ruta configurada al cargar la página
+        $.get("{{ route('obtener.ultima.ruta') }}", function(response) {
+            if (response.success && response.data) {
+                rutaConfigurada = true;
+                $('#nombreCarpeta').val(response.data.nombre_carpeta);
+                $('#rutaCarpeta').val(response.data.rutacompleta);
+            }
+        });
+
+        // Guardar la configuración de la ruta
+        $('#rutaArchivosForm').on('submit', function(e) {
+            e.preventDefault();
+
+            const nombreCarpeta = $('#nombreCarpeta').val();
+            const rutaCarpeta = $('#rutaCarpeta').val();
+
+            if (!nombreCarpeta || !rutaCarpeta) {
+                alert('Por favor, completa todos los campos.');
+                return;
+            }
+
+            $.ajax({
+                url: "{{ route('guardar.ruta.archivos') }}",
+                method: 'POST',
+                data: {
+                    nombreCarpeta: nombreCarpeta,
+                    rutaCarpeta: rutaCarpeta,
+                    _token: "{{ csrf_token() }}"
+                },
+                success: function(response) {
+                    if (response.success) {
+                        rutaConfigurada = true;
+                        alert(response.message);
+                        $('#rutaArchivosSection').hide();
+                    } else {
+                        alert(response.message);
+                    }
+                },
+                error: function(xhr) {
+                    const response = xhr.responseJSON;
+                    alert(response?.message || 'Error al guardar la ruta.');
+                }
+            });
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const editarRutaBtn = document.getElementById('editar-ruta-carpetas');
+            const opcionesRutas = document.getElementById('opciones-rutas');
+            const listaRutas = document.getElementById('lista-rutas');
+            const rutaInput = document.getElementById('ruta_archivos_manual');
+            const cargarRutaBtn = document.getElementById('cargar-ultima-ruta');
+            const abrirCarpetaBtn = document.getElementById('abrir-carpeta');
+            const abrirCarpetaSeleccionadaBtn = document.getElementById('abrir-carpeta-seleccionada');
+
+            // Mostrar/ocultar las opciones al hacer clic en "Editar Ruta de Carpetas"
+            editarRutaBtn.addEventListener('click', function () {
+                opcionesRutas.style.display = opcionesRutas.style.display === 'none' ? 'block' : 'none';
+                editarRutaBtn.textContent = opcionesRutas.style.display === 'none' ? 'Editar Ruta de Carpetas' : 'Ocultar Opciones';
+            });
+
+            // Cargar la última ruta desde el backend
+            cargarRutaBtn.addEventListener('click', function () {
+                fetch('/obtener-ultima-ruta')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            rutaInput.value = data.data; // Mostrar la última ruta en el campo de entrada
+                        } else {
+                            alert('Error: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Ocurrió un error al cargar la última ruta.');
+                    });
+            });
+
+            // Cargar todas las rutas en la lista desplegable
+            fetch('/obtener-todas-las-rutas')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const rutas = data.data;
+
+                    // Limpiar la lista desplegable
+                    listaRutas.innerHTML = '<option value="">-- Selecciona una ruta --</option>';
+
+                    // Agregar cada ruta a la lista desplegable
+                    rutas.forEach(ruta => {
+                        const option = document.createElement('option');
+                        option.value = ruta.rutacompleta;
+                        option.textContent = `${ruta.nombre_carpeta} (${ruta.rutacompleta})`;
+                        listaRutas.appendChild(option);
+                    });
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Ocurrió un error al cargar las rutas.');
+            });
+
+            // Abrir la carpeta desde el campo de entrada
+            abrirCarpetaBtn.addEventListener('click', function () {
+                const ruta = rutaInput.value.trim();
+
+                if (!ruta) {
+                    alert('La ruta está vacía. Por favor, carga una ruta válida.');
+                    return;
+                }
+
+                fetch('/abrir-carpeta', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({ ruta: ruta })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message);
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Ocurrió un error al abrir la carpeta.');
+                });
+            });
+
+            // Abrir la carpeta seleccionada de la lista desplegable
+            abrirCarpetaSeleccionadaBtn.addEventListener('click', function () {
+                const rutaSeleccionada = listaRutas.value.trim();
+
+                if (!rutaSeleccionada) {
+                    alert('Por favor, selecciona una ruta válida.');
+                    return;
+                }
+
+                fetch('/abrir-carpeta', {
+                    method: 'POST',
+                    headers: {
+                        'Content-type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({ ruta: rutaSeleccionada })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message);
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Ocurrió un error al abrir la carpeta.');
+                });
+            });
+        });
+
+
+
+
+    //     //Boton de mas y menos para subcursos
+    // document.addEventListener('DOMContentLoaded', function () {
+    //     document.querySelectorAll('.toggle-subcursos').forEach(function (button) {
+    //         button.addEventListener('click', function () {
+    //             const cursoId = this.getAttribute('data-id');
+    //             const row = document.getElementById('subcursos-' + cursoId);
+    //             const isVisible = row.style.display === 'table-row';
+
+    //             // Toggle visibilidad
+    //             row.style.display = isVisible ? 'none' : 'table-row';
+
+    //             // Cambiar ícono del botón
+    //             this.textContent = isVisible ? '+' : '–';
+    //         });
+    //     });
+    // });
+    </script>
+
+    <script>
+$(document).ready(function() {
+    $('.toggle-subcursos').on('click', function() {
+        var btn = $(this);
+        var cursoId = btn.data('id');
+        var tr = btn.closest('tr');
+
+        // Evitar duplicados
+        if (tr.next().hasClass('subcursos-row')) {
+            tr.next().toggle(); // mostrar/ocultar si ya existe
+            // Cambiar el texto del botón
+            const isVisible = tr.next().is(':visible');
+            btn.text(isVisible ? '-' : '+');
+            return;
+        }
+
+
+        // Obtener subcursos vía AJAX
+        $.ajax({
+    url: '/cursos/subcursos/' + cursoId,
+    method: 'GET',
+    data: {
+        instructor: $('#instructorFilter').val() // <-- Agrega esto
+    },
+    success: function(subcursos) {
+                if (subcursos.length > 0) {
+                    let html = '<tr class="subcursos-row"><td colspan="10">';
+                    html += '<table class="table table-bordered"><thead><tr><th>Nomenclatura</th><th>Nombre del subcurso</th><th>Descripción</th><th>Duracion del subcurso</th><th>Fecha Inicio</th><th>Fecha Fin</th><th>Costo</th><th>Instructor</th><th>Acciones</th></tr></thead><tbody>';
+
+                    subcursos.forEach(function(subcurso) {
+                        html += `<tr>
+                            <td>${subcurso.Nomenclatura}</td>
+                            <td>${subcurso.NombredelCurso}</td>
+                            <td>${subcurso.DescripciondeCurso}</td>
+                            <td>${subcurso.Duracioncurso}</td>
+                            <td>${subcurso.FechadeInicio}</td>
+                            <td>${subcurso.FechadeTermino}</td>
+                            <td>${subcurso.CostodelCurso}</td>
+                            <td>${subcurso.InstructorResponsable}</td>
+                            <td>
+                                <a href="/cursos/${subcurso.id}" class="btn btn-sm btn-info">Ver</a>
+                                ${subcurso.puesto_usuario !== 'Operacion' ? `
+                                <a href="/cursos/${subcurso.id}/edit" class="btn btn-warning btn-sm">Editar Curso</a>
+                                <form action="/cursos/${subcurso.id}" method="POST" style="display:inline-block;" onsubmit="return confirm('¿Estás seguro de eliminar este curso?')">
+                                    <input type="hidden" name="_token" value="${$('meta[name="csrf-token"]').attr('content')}">
+                                    <input type="hidden" name="_method" value="DELETE">
+                                    <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+                                </form>` : ''}
+                            </td>
+                        </tr>`;
+                    });
+
+                    html += '</tbody></table></td></tr>';
+                    tr.after(html);
+                    btn.text('-');
+                } else {
+                    alert('Este curso no tiene subcursos.');
+                }
+            },
+            error: function() {
+                alert('Error al obtener subcursos.');
+            }
+        });
+    });
+});
+</script>
+</body>
+</html>
