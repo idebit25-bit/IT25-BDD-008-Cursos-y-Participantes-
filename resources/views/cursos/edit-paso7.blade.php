@@ -579,14 +579,17 @@ function validarSelect(select) {
     const valor = select.value;
     const indicador = document.getElementById('estado-' + select.id);
     
-    select.classList.remove('select-completo', 'select-vacio');
+    select.classList.remove('select-completo', 'select-incompleto', 'select-vacio');
     if (indicador) {
-        indicador.classList.remove('estado-verde', 'estado-rojo');
+        indicador.classList.remove('estado-verde', 'estado-amarillo', 'estado-rojo');
     }
     
     if (valor === '' || valor === null) {
         select.classList.add('select-vacio');
         if (indicador) indicador.classList.add('estado-rojo');
+    } else if (/pendiente|en proceso/i.test(valor)) {
+        select.classList.add('select-incompleto');
+        if (indicador) indicador.classList.add('estado-amarillo');
     } else {
         select.classList.add('select-completo');
         if (indicador) indicador.classList.add('estado-verde');
@@ -603,6 +606,8 @@ function actualizarContadores() {
     campos.forEach(campo => {
         if (campo.classList.contains('drive-completo') || campo.classList.contains('select-completo')) {
             completos++;
+        } else if (campo.classList.contains('select-incompleto')) {
+            incompletos++;
         } else if (campo.classList.contains('drive-vacio') || campo.classList.contains('select-vacio')) {
             vacios++;
         }
@@ -621,6 +626,8 @@ function actualizarEstadoGeneral() {
     campos.forEach(campo => {
         if (campo.classList.contains('drive-completo') || campo.classList.contains('select-completo')) {
             completos++;
+        } else if (campo.classList.contains('select-incompleto')) {
+            incompletos++;
         } else if (campo.classList.contains('drive-vacio') || campo.classList.contains('select-vacio')) {
             vacios++;
         }

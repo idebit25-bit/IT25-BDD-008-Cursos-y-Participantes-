@@ -86,8 +86,9 @@
             justify-items: center;
         }
     </style>
+    <link rel="stylesheet" href="{{ asset('css/form-layout.css') }}?v={{ filemtime(public_path('css/form-layout.css')) }}">
 </head>
-<body>
+<body class="app-spaced-controls">
     @php
         use Illuminate\Support\Facades\Auth;
         $userRole = auth()->user()?->puesto ?? 'guest';

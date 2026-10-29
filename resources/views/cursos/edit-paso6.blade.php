@@ -573,14 +573,17 @@ function validarSelect(select) {
     const valor = select.value;
     const indicador = document.getElementById('estado-' + select.id);
     
-    select.classList.remove('porcentaje-completo', 'porcentaje-vacio');
+    select.classList.remove('porcentaje-completo', 'porcentaje-incompleto', 'porcentaje-vacio');
     if (indicador) {
-        indicador.classList.remove('estado-verde', 'estado-rojo');
+        indicador.classList.remove('estado-verde', 'estado-amarillo', 'estado-rojo');
     }
     
     if (valor === '' || valor === null) {
         select.classList.add('porcentaje-vacio');
         if (indicador) indicador.classList.add('estado-rojo');
+    } else if (/pendiente|en proceso/i.test(valor)) {
+        select.classList.add('porcentaje-incompleto');
+        if (indicador) indicador.classList.add('estado-amarillo');
     } else {
         select.classList.add('porcentaje-completo');
         if (indicador) indicador.classList.add('estado-verde');

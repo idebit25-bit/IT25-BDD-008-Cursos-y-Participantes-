@@ -84,8 +84,9 @@
             border-radius: 6px !important;
         }
     </style>
+    <link rel="stylesheet" href="{{ asset('css/form-layout.css') }}?v={{ filemtime(public_path('css/form-layout.css')) }}">
 </head>
-<body>
+<body class="app-spaced-controls">
     <div class="login-container">
         <!-- Imagen centrada -->
         <img src="{{ asset('images/logo.png') }}" alt="Logo" class="mx-auto d-block">

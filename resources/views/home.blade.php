@@ -510,8 +510,8 @@ body .navbar-fijo {
   margin-bottom: 10px;
 }
 
-.form-check, .mb-3 {
-  margin-bottom: 10px;
+.content-area .form-check {
+  margin-bottom: .625rem;
 }
 
 /* input.form-control {
@@ -589,8 +589,9 @@ select,
 }
   </style>
 
+  <link rel="stylesheet" href="{{ asset('css/form-layout.css') }}?v={{ filemtime(public_path('css/form-layout.css')) }}">
 </head>
-<body>
+<body class="app-spaced-controls">
 
     
   @php

@@ -28,6 +28,14 @@ class CursoController extends Controller
      */
     public function index(Request $request)
     {
+        $request->validate([
+            'search' => 'nullable|string|max:255',
+            'instructor' => 'nullable|string|max:255',
+            'costo_min' => 'nullable|numeric|min:0',
+            'costo_max' => 'nullable|numeric|min:0'.($request->filled('costo_min') ? '|gte:costo_min' : ''),
+            'viewOption' => 'nullable|in:default,drive',
+        ]);
+        $vista = $request->query('viewOption', 'default');
         $search = $request->get('search');
         $instructor = $request->get('instructor');
         $ordenes = [
@@ -53,6 +61,9 @@ class CursoController extends Controller
         if ($instructor) {
             $query->where('instructor_responsable', $instructor);
         }
+        if ($request->filled('costo_min')) $query->where('costo', '>=', $request->input('costo_min'));
+        if ($request->filled('costo_max')) $query->where('costo', '<=', $request->input('costo_max'));
+        if ($vista === 'drive') $query->with(['recursos', 'evaluaciones', 'certificaciones']);
 
         // Ordenar antes de paginar mantiene la secuencia en búsquedas y al regresar.
         [$columna, $direccion] = $ordenes[$orden];
@@ -60,7 +71,7 @@ class CursoController extends Controller
             ->paginate(5)->withQueryString()->appends(['orden' => $orden]);
         $subcursos = Cursos::whereNotNull('parent_id')->get(); 
 
-        return view('cursos.index', compact('cursos', 'subcursos', 'orden'));
+        return view('cursos.index', compact('cursos', 'subcursos', 'orden', 'vista'));
     }
 
     public function obtenerSubcursos($cursoId, Request $request)
@@ -1137,8 +1148,8 @@ class CursoController extends Controller
         $progreso = [];
         
         $pasosCampos = [
-            1 => ['nomenclatura', 'nombre'],
-            2 => [],
+            1 => ['nomenclatura', 'nombre', 'descripcion', 'costo', 'instructor_responsable', 'fecha_inicio', 'fecha_termino', 'duracion'],
+            2 => ['modalidad'],
             3 => ['recursos' => ['sin_fecha', 'facebook', 'linkedin', 'instagram']],
             4 => ['recursos' => ['temario', 'itinerario', 'planeacion']],
             5 => ['recursos' => ['digital', 'presentacion', 'impreso']],
@@ -1183,6 +1194,10 @@ class CursoController extends Controller
     private function campoDirectoLleno($curso, $campo)
     {
         $valor = $curso->$campo;
+        // Un curso gratuito tiene el costo capturado, aunque sea cero.
+        if ($campo === 'costo') {
+            return $valor !== null && $valor !== '';
+        }
         
         if (in_array($campo, ['sin_fecha'])) {
             return $valor == 1 || $valor === true;

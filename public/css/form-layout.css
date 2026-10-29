@@ -1,0 +1,115 @@
+/* Controles separados en las dos plantillas y las pantallas de acceso. */
+.app-spaced-controls { --control-gap: 2px; }
+.app-spaced-controls form .row { --bs-gutter-x: 1.5rem; --bs-gutter-y: 1.25rem; }
+.app-spaced-controls form .form-label,
+.app-spaced-controls form label:not(.form-check-label) { margin-bottom: .5rem; line-height: 1.5; }
+.app-spaced-controls form .form-control,
+.app-spaced-controls form .form-select { min-height: 42px; }
+.app-spaced-controls .input-group {
+    gap: var(--control-gap) !important;
+    align-items: stretch;
+}
+.app-spaced-controls .input-group > .form-control,
+.app-spaced-controls .input-group > .form-select,
+.app-spaced-controls .input-group > .custom-select,
+.app-spaced-controls .input-group > .input-group-text,
+.app-spaced-controls .input-group > .btn,
+.app-spaced-controls .input-group > .input-group-prepend,
+.app-spaced-controls .input-group > .input-group-append {
+    margin: 0 !important;
+    border-radius: 6px !important;
+}
+.app-spaced-controls .input-group > .form-control,
+.app-spaced-controls .input-group > .form-select,
+.app-spaced-controls .input-group > .custom-select {
+    min-width: 0;
+    border: 1px solid #ced4da !important;
+}
+.app-spaced-controls .input-group > .input-group-text {
+    border: 1px solid #ced4da !important;
+    justify-content: center;
+}
+.app-spaced-controls .password-toggle:has(> button) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--control-gap);
+    align-items: end;
+}
+.app-spaced-controls .password-toggle:has(> button) > label { grid-column: 1 / -1; }
+.app-spaced-controls .password-toggle:has(> button) > input { min-width: 0; grid-column: 1; }
+.app-spaced-controls .password-toggle > button {
+    position: static !important;
+    transform: none !important;
+    align-self: stretch;
+    padding: .5rem .875rem;
+    border: 1px solid #ced4da !important;
+    border-radius: 6px;
+}
+.app-spaced-controls .input-group > .form-control.is-invalid,
+.app-spaced-controls .input-group > .form-select.is-invalid { border-color: #dc3545 !important; }
+.app-spaced-controls .input-group > .form-control.is-valid,
+.app-spaced-controls .input-group > .form-select.is-valid { border-color: #198754 !important; }
+.app-spaced-controls .input-group > .invalid-feedback,
+.app-spaced-controls .input-group > .valid-feedback { flex-basis: 100%; margin-top: 0; }
+.app-spaced-controls .input-group-prepend,
+.app-spaced-controls .input-group-append { display: flex; gap: var(--control-gap); }
+.app-spaced-controls .input-group-prepend > *,
+.app-spaced-controls .input-group-append > * { border-radius: 6px !important; }
+.app-spaced-controls .btn-group,
+.app-spaced-controls .btn-group-vertical { gap: var(--control-gap) !important; }
+.app-spaced-controls .btn-group > .btn,
+.app-spaced-controls .btn-group-vertical > .btn { margin: 0 !important; border-radius: 6px !important; }
+.app-spaced-controls form .d-flex:has(> button, > a.btn),
+.app-spaced-controls td .d-flex:has(> .btn, > .btn-action, > form) {
+    gap: var(--control-gap) !important;
+    flex-wrap: wrap;
+}
+.app-spaced-controls form .form-check { margin-bottom: .75rem; }
+.app-spaced-controls .form-check-inline { margin-right: 1rem; }
+.app-spaced-controls .form-section-card + .form-section-card { margin-top: 1.5rem; }
+.app-spaced-controls .form-section-title { margin-top: 1.5rem; margin-bottom: 1rem; }
+.app-spaced-controls form .form-group { margin-bottom: 1.25rem; }
+.content-area { min-width: 0; }
+.app-spaced-controls .form-select.select-incompleto {
+    border-color: #ffc107 !important;
+    border-left: 4px solid #ffc107 !important;
+    background-color: #fff8e1;
+}
+.content-area form .row { --bs-gutter-y: 1.25rem; }
+.content-area form > .form-section-card + .form-section-card { margin-top: 1.5rem; }
+.content-area form .d-flex:has(> button + button),
+.content-area form .d-flex:has(> a.btn + button) { gap: var(--control-gap); flex-wrap: wrap; }
+.content-area form .form-label { margin-bottom: .5rem; line-height: 1.5; }
+.content-area form .form-control,
+.content-area form .form-select { min-height: 42px; }
+.content-area form .form-check { margin-bottom: .625rem; }
+.content-area form .form-check-label { padding-left: .25rem; }
+.content-area form .invalid-feedback { line-height: 1.5; margin-top: .375rem; }
+.content-area .input-group:has(> .form-control ~ .form-control) { gap: var(--control-gap); }
+.content-area .input-group:has(> .form-control ~ .form-control) > .form-control {
+    margin-left: 0 !important;
+    border-radius: 6px !important;
+    min-width: 0;
+}
+.course-toolbar { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; justify-content: space-between; }
+.course-toolbar-controls { display: flex; flex: 1 1 640px; flex-wrap: wrap; gap: var(--control-gap); justify-content: flex-end; }
+.course-search-form { display: flex; flex: 1 1 340px; flex-wrap: wrap; gap: var(--control-gap); min-width: 0; }
+.course-search-form .input-group { flex: 1 1 180px; width: auto; min-width: 0; }
+.course-search-form .form-select { flex: 0 1 180px; margin: 0 !important; }
+.course-filters .cost-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--control-gap); }
+.course-filters .form-control, .course-filters .form-select { min-height: 42px; }
+.course-filters .filter-actions { display: flex; flex-wrap: wrap; gap: var(--control-gap); margin-top: 1rem; }
+.course-filters fieldset { min-width: 0; }
+.course-drive-links { display: flex; flex-wrap: wrap; gap: var(--control-gap); padding: .75rem; }
+.app-spaced-controls :is(form, main, .content-area) .d-flex:has(> .btn, > .btn-action, > form),
+.app-spaced-controls :is(.doc-acciones, .form-actions, .button-group) {
+    gap: var(--control-gap) !important;
+}
+@media (max-width: 575.98px) {
+    .content-area { padding: 12px; }
+    .content-area .container-fluid { padding: 0; }
+    .content-area .table-container { padding: 16px; }
+    .course-toolbar-controls { justify-content: flex-start; }
+    .course-search-form .form-select { flex-basis: 100%; }
+    .course-filters .cost-fields { grid-template-columns: 1fr; }
+}

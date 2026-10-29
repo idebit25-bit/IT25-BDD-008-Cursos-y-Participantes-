@@ -113,13 +113,13 @@
 
 <div class="container-fluid">
     <div class="table-container">
-        <div class="row mb-4 align-items-center">
-            <div class="col-md-4">
+        <div class="course-toolbar mb-4">
+            <div>
                 <h1 class="h3 mb-0" style="font-weight: 300;">Gestión de Cursos</h1>
             </div>
-            <div class="col-md-8 text-end">
-                <div class="d-flex justify-content-end gap-2 flex-wrap">
-                    <form id="courseSearchForm" action="{{ route('cursos.index') }}" method="GET" class="d-flex me-2">
+            <div class="course-toolbar-controls">
+                <div class="d-flex justify-content-end gap-2 flex-wrap w-100">
+                    <form id="courseSearchForm" action="{{ route('cursos.index') }}" method="GET" class="course-search-form">
                         <input type="hidden" name="instructor" value="{{ request('instructor') }}">
                         <label for="ordenCursos" class="visually-hidden">Ordenar cursos</label>
                         <select id="ordenCursos" name="orden" class="form-select me-2" style="width: auto;" onchange="this.form.requestSubmit()">
@@ -149,6 +149,11 @@
             </div>
         </div>
 
+        @if($errors->any())
+            <div class="alert alert-danger" role="alert">
+                @foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach
+            </div>
+        @endif
         <section class="course-filters border rounded p-3 mb-4 bg-light" aria-labelledby="courseFiltersTitle">
             <h2 id="courseFiltersTitle" class="h6 mb-3">Filtros de cursos</h2>
             <div class="row g-3 align-items-end">
@@ -156,11 +161,11 @@
                     <legend class="form-label fs-6">Visualización</legend>
                     <div class="d-flex flex-wrap gap-3">
                         <div class="form-check">
-                            <input class="form-check-input" type="radio" name="viewOption" id="defaultView" value="default" checked>
+                            <input class="form-check-input" type="radio" form="courseSearchForm" name="viewOption" id="defaultView" value="default" @checked($vista === 'default') onchange="this.form.requestSubmit()">
                             <label class="form-check-label" for="defaultView">Vista predeterminada</label>
                         </div>
                         <div class="form-check">
-                            <input class="form-check-input" type="radio" name="viewOption" id="driveView" value="drive">
+                            <input class="form-check-input" type="radio" form="courseSearchForm" name="viewOption" id="driveView" value="drive" @checked($vista === 'drive') onchange="this.form.requestSubmit()">
                             <label class="form-check-label" for="driveView">Links de Drive</label>
                         </div>
                     </div>
@@ -176,11 +181,21 @@
                 </div>
                 <fieldset class="col-12 col-md-6 col-lg-4 mb-0">
                     <legend class="form-label fs-6">Rango de costo</legend>
-                    <div class="input-group">
-                        <input type="number" id="costMinFilter" class="form-control" placeholder="Mínimo" aria-label="Costo mínimo">
-                        <input type="number" id="costMaxFilter" class="form-control" placeholder="Máximo" aria-label="Costo máximo">
+                    <div class="cost-fields">
+                        <div>
+                            <label for="costMinFilter" class="form-label small">Mínimo</label>
+                            <input type="number" id="costMinFilter" name="costo_min" form="courseSearchForm" value="{{ old('costo_min', request('costo_min')) }}" min="0" step="0.01" class="form-control" placeholder="Desde $0">
+                        </div>
+                        <div>
+                            <label for="costMaxFilter" class="form-label small">Máximo</label>
+                            <input type="number" id="costMaxFilter" name="costo_max" form="courseSearchForm" value="{{ old('costo_max', request('costo_max')) }}" min="0" step="0.01" class="form-control" placeholder="Sin límite">
+                        </div>
                     </div>
                 </fieldset>
+            </div>
+            <div class="filter-actions">
+                <button type="submit" form="courseSearchForm" class="btn btn-dark">Aplicar filtros</button>
+                <a href="{{ route('cursos.index', ['orden' => $orden]) }}" class="btn btn-outline-secondary">Limpiar filtros</a>
             </div>
         </section>
 
@@ -255,6 +270,9 @@
                                 </div>
                             </td>
                         </tr>
+                        @if($vista === 'drive')
+                            <tr><td colspan="11">@include('cursos.partials.drive-links', ['curso' => $curso])</td></tr>
+                        @endif
                         <tr id="details-{{ $curso->id }}" style="display: none;">
                             <td colspan="11" class="p-0">
                                 <div class="expanded-section">
