@@ -62,3 +62,19 @@ ascendente, con ID interno como desempate, antes de paginar. Esto corresponde a
 ejemplos con consecutivo de ancho fijo como `ID-A02`, `ID-A10`, `ID-B01`.
 No constituye orden natural para números sin ceros como `ID-A2` y `ID-A10`;
 debe contrastarse con las nomenclaturas reales antes de validar el requisito.
+
+## Prueba de carga, consulta y reemplazo (29 de octubre de 2026)
+
+Se probó por HTTP en la demo con el archivo DC5 del paso 7 (edición del curso `ID-A02`):
+
+| Operación | Resultado observado |
+|---|---|
+| Carga | El archivo se guarda en `storage/app/public/cursos/4/<marca>_<id>_<nombre>.pdf` y `curso_recursos.url` apunta a `cursos/4/...`. No se sube a Drive. |
+| Consulta | `/cursos/4/archivos/<archivo>` responde 200 (`application/pdf`). Sólo PDF e imágenes se abren en el navegador; los demás tipos se descargan. Requiere sesión. |
+| Subcurso que hereda STPS | El enlace del subcurso apunta al archivo del curso inicial (`cursos/4/...`). |
+| Tipo no permitido (`.html`) | Se rechaza con mensaje visible; no se escribe en disco. |
+| Reemplazo | Se guarda un archivo nuevo y el registro apunta a él, pero **el archivo anterior queda en disco sin referencia**. |
+| Eliminación | No existe una acción para borrar un documento de curso; sólo se reemplaza. |
+
+Pendiente de decidir con la institución: si al reemplazar se debe borrar el archivo
+anterior o conservarlo como historial, y si se requiere respaldo en Drive.

@@ -101,6 +101,7 @@
         </div>
     </header>
     <main>
+        @include('partials.avisos')
         @yield('content')
     </main>
 </body>

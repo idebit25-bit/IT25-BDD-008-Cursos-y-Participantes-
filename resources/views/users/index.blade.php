@@ -135,9 +135,6 @@
                             <td class="text-center">{{ $user->telefono }}</td>
                             <td class="sticky-col">
                                 <div class="d-flex justify-content-center align-items-center flex-nowrap" style="gap: 2px;">
-                                    <button class="btn-action btn-info-modern view-password" data-id="{{ $user->id }}" title="Ver Contraseña">
-                                        <i class="fas fa-key"></i> Contraseña
-                                    </button>
                                     <button><a href="{{ route('users.edit', $user->id) }}" class="btn-action btn-warning-modern" title="Editar">
                                         <i class="fas fa-edit"></i> Editar
                                     </a></button>

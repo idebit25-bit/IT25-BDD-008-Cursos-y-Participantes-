@@ -597,6 +597,8 @@ select,
   @php
     use Illuminate\Support\Facades\Auth;
     $userRole = auth()->user()?->puesto ?? 'guest';
+    // Mismo criterio que los middleware de routes/web.php
+    $esAdministracion = in_array($userRole, ['Programador', 'Administrador'], true);
   @endphp
 
    @auth
@@ -663,7 +665,7 @@ select,
      @endif
 
   @endauth
-  @if(auth()->user()?->puesto != 'Mantenimiento')
+  @if($esAdministracion)
     <li class="nav-item">
         <a href="/users" class="nav-link menu-item {{ request()->is('users') ? 'active' : '' }}">
            <i class="fa-solid fa-user-plus"></i> <span>Creación usuario</span>
@@ -692,11 +694,13 @@ select,
         </a>
   </li>
   @endif
+  @if($esAdministracion)
   <li class="nav-item">
         <a href="{{ route('ruta.archivos') }}" class="nav-link menu-item {{ request()->is('archivos') ? 'active' : '' }}">
             <i class="fa-solid fa-folder-tree"></i> <span>Ruta archivos</span>
         </a>
   </li>
+  @endif
 
    <li class="nav-item">
         <a href="https://drive.google.com/drive/folders/1HRJ_UliysPgzUOm1_XvcLR4MSuAjdODD?usp=sharing" class="nav-link menu-item {{ request()->is('Usuario') ? 'active' : '' }}">
@@ -704,6 +708,7 @@ select,
         </a>
   </li>
 
+  @if($esAdministracion)
   <li class="nav-item">
         <a href="/export-db" class="nav-link menu-item {{ request()->is('export-db') ? 'active' : '' }}">
            <i class="fa-solid fa-file-export"></i><span>Exportar Base de Datos</span>
@@ -715,6 +720,7 @@ select,
             <i class="fa-solid fa-file-import"></i> <span>Importar Base de Datos</span>
         </a>
   </li>
+  @endif
 <li class="nav-item">
         <a href="{{ config('services.erp.url') }}" rel="noopener noreferrer" class="nav-link menu-item">
             <i class="fa-solid fa-house"></i> <span>Regresar al Inicio IDEB</span>
@@ -764,6 +770,7 @@ select,
                 </div>
             </div>
             @endif
+            @include('partials.avisos', ['soloErrores' => true])
             @yield('content')
         </div>
     </div>

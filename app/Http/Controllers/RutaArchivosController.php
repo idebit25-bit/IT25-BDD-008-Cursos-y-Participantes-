@@ -121,9 +121,18 @@ class   RutaArchivosController extends Controller
                 ], 400);
             }
 
-            // Construir el comando para ejecutar el script Python
-            $scriptPath = storage_path('app/public/abrir_carpeta.py');
-            $comando = escapeshellcmd("python \"{$scriptPath}\" \"$ruta\"");
+            // El script vive fuera de storage/app/public: esa carpeta recibe cargas de usuarios
+            // y no debe contener código que el servidor ejecute
+            $scriptPath = base_path('scripts/abrir_carpeta.py');
+            if (!is_file($scriptPath)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'La función de abrir carpetas no está instalada en este servidor.'
+                ], 501);
+            }
+
+            // Construir el comando para ejecutar el script Python, escapando cada argumento
+            $comando = 'python ' . escapeshellarg($scriptPath) . ' ' . escapeshellarg($ruta);
 
             // Ejecutar el comando
             exec($comando, $output, $return_var);

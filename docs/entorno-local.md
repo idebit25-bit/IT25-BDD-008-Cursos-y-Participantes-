@@ -53,3 +53,33 @@ Participantes (respuestas 200). El listado mostró `ID-A01`, `ID-A02`, `ID-A10`,
 
 Esto verifica el arranque y esas lecturas, no todos los guardados ni la herencia
 STPS, que sigue pendiente de implementación.
+
+## Usuarios de prueba por rol (29 de octubre de 2026)
+
+Para probar permisos se añadieron a la demo, con la contraseña `Prueba12345`:
+
+| Correo | Puesto | Estado |
+|---|---|---|
+| `mante@example.test` | Mantenimiento | Activo |
+| `opera@example.test` | Operacion | Activo |
+| `inactivo@example.test` | Administrador | Desactivado (no puede entrar) |
+
+Permisos aplicados en el servidor (`routes/web.php`):
+
+- **Programador / Administrador:** todo, incluidos usuarios, base de datos,
+  configuración, explorador de archivos, papeleras y eliminación.
+- **Mantenimiento:** consultar, crear y editar cursos y participantes; sin eliminar.
+- **Operacion:** sólo consulta y reportes (Excel/CSV/PDF).
+
+La columna `users.plain_password` se eliminó de esta demo directamente. En el
+hosting la elimina la migración `2026_10_29_000000_drop_plain_password_from_users_table`.
+
+## Herencia STPS en subcursos
+
+Un subcurso usa la fecha de registro STPS, DC5, certificado de comprobación y
+carta poder de su curso inicial cuando éste tiene fecha de registro STPS y el
+subcurso no capturó datos propios. UDEMY siempre es propio. Si el subcurso ya
+tenía datos propios, se conservan; el paso 7 ofrece "Usar datos del curso inicial".
+
+En la demo: `ID-A02` (con alta) → `ID-A02-01` hereda; `ID-A10` recibió alta
+durante las pruebas y `ID-A10-01` ya usa sus datos.

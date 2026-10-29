@@ -4,17 +4,7 @@
 <div class="container">
     <h1>Contenido de la Carpeta: {{ $carpeta }}</h1>
 
-    @if (session('success'))
-        <div class="alert alert-success">
-            {{ session('success') }}
-        </div>
-    @endif
-
-    @if (session('error'))
-        <div class="alert alert-danger">
-            {{ session('error') }}
-        </div>
-    @endif
+    {{-- Los mensajes de éxito/error los muestra layouts.app (partials.avisos) --}}
 
     <!-- Formulario para subir archivos -->
     <form action="{{ route('archivos.upload-to-folder', ['carpeta' => $carpeta]) }}" method="POST" enctype="multipart/form-data" class="mb-4">

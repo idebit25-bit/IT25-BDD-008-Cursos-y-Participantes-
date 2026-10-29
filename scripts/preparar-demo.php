@@ -42,9 +42,6 @@ foreach (glob(__DIR__.'/../database/migrations/*.php') as $path) {
 if (!Schema::hasColumn('cursos', 'modalidad')) Schema::table('cursos', function (Blueprint $table) {
     $table->string('modalidad')->nullable();
 });
-if (!Schema::hasColumn('users', 'plain_password')) Schema::table('users', function (Blueprint $table) {
-    $table->string('plain_password')->nullable();
-});
 Schema::create('curso_modalidades', function (Blueprint $table) {
     $table->id();
     $table->foreignId('curso_id')->constrained('cursos')->cascadeOnDelete();

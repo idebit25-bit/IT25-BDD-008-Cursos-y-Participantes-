@@ -139,12 +139,16 @@
                     <a href="{{ route('exportar.cursos.csv') }}" class="btn-action btn-info-c shadow-sm" style="width: auto; min-width: 110px; height: 40px;">
                         <i class="fas fa-file-csv"></i> CSV
                     </a>
+                    @if(auth()->user()?->puesto != 'Operacion')
                     <a href="{{ route('curso.iniciar') }}" class="btn-action btn-primary-c shadow-sm" style="width: auto; min-width: 110px; height: 40px;">
                         <i class="fas fa-plus"></i> Nuevo
                     </a>
+                    @endif
+                    @if(in_array(auth()->user()?->puesto, ['Programador', 'Administrador']))
                     <a href="{{ route('cursos.papelera') }}" class="btn-action btn-secondary-c shadow-sm" style="width: auto; min-width: 110px; height: 40px;">
                         <i class="fas fa-trash-alt"></i> Papelera
                     </a>
+                    @endif
                 </div>
             </div>
         </div>
@@ -260,12 +264,14 @@
                                                 <i class="fas fa-power-off"></i> {{ $curso->status == 1 ? 'Pausar' : 'Activar' }}
                                             </button>
                                         </form>
+                                        @if(in_array(auth()->user()?->puesto, ['Programador', 'Administrador']))
                                         <form action="{{ route('cursos.destroy', $curso->id) }}" method="POST" onsubmit="return confirm('¿Enviar curso a la papelera?')">
                                             @csrf @method('DELETE')
                                             <button type="submit" class="btn-action btn-danger-c" title="Eliminar">
                                                 <i class="fas fa-trash"></i> Borrar
                                             </button>
                                         </form>
+                                        @endif
                                     @endif
                                 </div>
                             </td>
@@ -305,6 +311,11 @@
 </div>
 
 <script>
+    // Escapa texto antes de insertarlo con innerHTML (evita XSS con datos de subcursos)
+    function esc(valor) {
+        return String(valor ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+    }
+
     function toggleDetails(id) {
         const detailsRow = document.getElementById(`details-${id}`);
         const button = document.querySelector(`#row-${id} .btn-expand`);
@@ -347,40 +358,42 @@
                 if (data.length > 0) {
                     data.forEach(sub => {
                         const estatus = sub.estatus_progreso;
-                        const statusBadge = `<span class="badge ${estatus.color}" style="padding: 8px; min-width: 80px;">${estatus.texto}</span>`;
+                        const statusBadge = `<span class="badge ${esc(estatus.color)}" style="padding: 8px; min-width: 80px;">${esc(estatus.texto)}</span>`;
                         const desc = sub.descripcion ? (sub.descripcion.length > 30 ? sub.descripcion.substring(0,30) + '...' : sub.descripcion) : '-';
                         
                         html += `<tr>
-                                    <td class="fw-bold text-primary">${sub.nomenclatura || 'N/A'}</td>
-                                    <td class="fw-bold">${sub.nombre}</td>
-                                    <td title="${sub.descripcion || ''}">${desc}</td>
-                                    <td>${sub.instructor_responsable || '-'}</td>
-                                    <td>${sub.duracion || '-'}</td>
-                                    <td class="text-success fw-bold">$${sub.costo}</td>
-                                    <td class="small">${sub.fecha_inicio || '-'}</td>
-                                    <td class="small">${sub.fecha_termino || '-'}</td>
+                                    <td class="fw-bold text-primary">${esc(sub.nomenclatura || 'N/A')}</td>
+                                    <td class="fw-bold">${esc(sub.nombre)}</td>
+                                    <td title="${esc(sub.descripcion || '')}">${esc(desc)}</td>
+                                    <td>${esc(sub.instructor_responsable || '-')}</td>
+                                    <td>${esc(sub.duracion || '-')}</td>
+                                    <td class="text-success fw-bold">$${esc(sub.costo)}</td>
+                                    <td class="small">${esc(sub.fecha_inicio || '-')}</td>
+                                    <td class="small">${esc(sub.fecha_termino || '-')}</td>
                                     <td>${statusBadge}</td>
                                     <td class="text-center">
                                         <div class="d-flex justify-content-center">
-                                            <a href="/cursos/${sub.id}" class="btn-action btn-info-c" style="width: 80px; height: 32px; font-size: 11px;" title="Ver">
+                                            <a href="/cursos/${encodeURIComponent(sub.id)}" class="btn-action btn-info-c" style="width: 80px; height: 32px; font-size: 11px;" title="Ver">
                                                 <i class="fas fa-eye"></i> Ver
                                             </a>
                                             @if(auth()->user()?->puesto != 'Operacion')
-                                                <a href="/cursos/${sub.id}/edit" class="btn-action btn-warning-c" style="width: 80px; height: 32px; font-size: 11px;" title="Editar">
+                                                <a href="/cursos/${encodeURIComponent(sub.id)}/edit" class="btn-action btn-warning-c" style="width: 80px; height: 32px; font-size: 11px;" title="Editar">
                                                     <i class="fas fa-edit"></i> Editar
                                                 </a>
-                                                <form action="/cursos/${sub.id}/toggle-status" method="POST" style="display:inline;">
+                                                <form action="/cursos/${encodeURIComponent(sub.id)}/toggle-status" method="POST" style="display:inline;">
                                                     @csrf
                                                     <button type="submit" class="btn-action ${sub.status == 1 ? 'btn-secondary-c' : 'btn-success-c'}" style="width: 80px; height: 32px; font-size: 11px;">
                                                         <i class="fas fa-power-off"></i> ${sub.status == 1 ? 'Pausar' : 'Activar'}
                                                     </button>
                                                 </form>
-                                                <form action="/cursos/${sub.id}" method="POST" style="display:inline;" onsubmit="return confirm('¿Eliminar subcurso?')">
+                                                @if(in_array(auth()->user()?->puesto, ['Programador', 'Administrador']))
+                                                <form action="/cursos/${encodeURIComponent(sub.id)}" method="POST" style="display:inline;" onsubmit="return confirm('¿Eliminar subcurso?')">
                                                     @csrf @method('DELETE')
                                                     <button type="submit" class="btn-action btn-danger-c" style="width: 80px; height: 32px; font-size: 11px;">
                                                         <i class="fas fa-trash"></i> Borrar
                                                     </button>
                                                 </form>
+                                                @endif
                                             @endif
                                         </div>
                                     </td>

@@ -15,6 +15,8 @@ use Illuminate\Support\Facades\Password;
 
 class ResetPasswordController extends Controller
 {
+    private const MINUTOS_VIGENCIA_TOKEN = 60;
+
     public function showResetForm(Request $request, $token = null)
     {
         return view('auth.passwords.reset')->with(['token' => $token, 'email' => $request->email]);
@@ -29,18 +31,26 @@ class ResetPasswordController extends Controller
             'token' => 'required',
         ]);
 
-        // Verificar el token
+        // Verificar el token (guardado con hash) y su vigencia
         $resetRecord = DB::table('password_resets')
             ->where('email', $request->email)
-            ->where('token', $request->token)
             ->first();
 
-        if (!$resetRecord) {
-            return back()->withErrors(['email' => 'Este enlace de restablecimiento es inválido.']);
+        $tokenValido = $resetRecord
+            && Hash::check($request->token, $resetRecord->token)
+            && Carbon::parse($resetRecord->created_at)->addMinutes(self::MINUTOS_VIGENCIA_TOKEN)->isFuture();
+
+        $user = $tokenValido ? User::where('email', $request->email)->where('estatus', 1)->first() : null;
+
+        if (!$user) {
+            $mensaje = 'Este enlace de restablecimiento es inválido o ya caducó. Solicita uno nuevo.';
+            if ($request->expectsJson()) {
+                return response()->json(['errors' => ['email' => [$mensaje]]], 422);
+            }
+            return back()->withErrors(['email' => $mensaje]);
         }
 
         // Actualizar la contraseña
-        $user = User::where('email', $request->email)->first();
         $user->password = Hash::make($request->password);
         $user->setRememberToken(Str::random(60));
         $user->save();
@@ -60,6 +70,9 @@ class ResetPasswordController extends Controller
         DB::table('password_resets')->where('email', $request->email)->delete();
 
         // Redirigir al usuario con un mensaje de éxito
+        if ($request->expectsJson()) {
+            return response()->json(['status' => 'Tu contraseña ha sido restablecida con éxito.']);
+        }
         return redirect()->route('login')->with('status', 'Tu contraseña ha sido restablecida con éxito.');
     }
     protected function redirectTo()

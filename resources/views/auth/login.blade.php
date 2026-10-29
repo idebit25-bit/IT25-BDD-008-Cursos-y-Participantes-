@@ -128,7 +128,7 @@
 
             <!-- Enlace para recuperar contraseña -->
             <div class="forgot-password-link">
-                <a href="{{ route('password.request') }}">¿Olvidaste tu contraseña?</a>
+                <a href="{{ route('password.request.custom') }}">¿Olvidaste tu contraseña?</a>
             </div>
 
             <!-- Botón de inicio de sesión -->

@@ -9,6 +9,10 @@ use Google\Service\Drive;
 use Masbug\Flysystem\GoogleDriveAdapter;
 use League\Flysystem\Filesystem;
 use Illuminate\Filesystem\FilesystemAdapter;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -17,7 +21,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Fortify y Jetstream vienen como dependencias, pero el sistema usa su propio
+        // login y recuperación de contraseña (routes/web.php). Sus rutas automáticas
+        // (/register, /reset-password, /user/...) quedaban expuestas sin los controles del proyecto.
+        \Laravel\Fortify\Fortify::ignoreRoutes();
+        \Laravel\Jetstream\Jetstream::ignoreRoutes();
     }
 
     /**
@@ -25,6 +33,17 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Máximo 5 intentos de inicio de sesión por minuto para cada correo + IP
+        RateLimiter::for('login', function (Request $request) {
+            return Limit::perMinute(5)
+                ->by(Str::lower((string) $request->input('email')) . '|' . $request->ip())
+                ->response(function () {
+                    return back()->withErrors([
+                        'email' => 'Demasiados intentos de inicio de sesión. Espera un minuto e inténtalo de nuevo.',
+                    ])->withInput(request()->only('email'));
+                });
+        });
+
         try {
             Storage::extend('google', function($app, $config) {
                 $client = new Client();

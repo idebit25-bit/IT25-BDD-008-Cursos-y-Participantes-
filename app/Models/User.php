@@ -19,7 +19,6 @@ use Illuminate\Notifications\Notifiable;
  * @property string|null $puesto
  * @property \Illuminate\Support\Carbon|null $email_verified_at
  * @property string $password
- * @property string|null $plain_password
  * @property string|null $remember_token
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
@@ -60,7 +59,6 @@ class User extends Authenticatable
         'apellido',
         'email',
         'password',
-        'plain_password',
         'puesto',
         'telefono',
         'edad',

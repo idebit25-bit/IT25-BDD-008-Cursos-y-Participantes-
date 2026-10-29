@@ -254,10 +254,12 @@
                     </div>
 
                     <div class="card-body p-4 p-md-5">
+                        @include('cursos.partials.stps-heredado')
                         <form action="{{ route('cursos.update.paso', [$curso->id, 7]) }}" method="POST" enctype="multipart/form-data" id="formularioCurso">
                             @csrf
                             @method('PUT')
 
+                            <fieldset @if($stpsHeredadoDe) disabled aria-describedby="stps-heredado" @endif>
                             <!-- ==========================================
                             FECHA REGISTRO STPS
                             ========================================== -->
@@ -446,6 +448,8 @@
                                     </div>
                                 </div>
                             </div>
+
+                            </fieldset>
 
                             <!-- ==========================================
                             UDEMY

@@ -141,4 +141,55 @@ class Cursos extends Model
     {
         return $this->certificaciones()->where('tipo_certificacion', $tipo)->first();
     }
+
+    // ============================================
+    // DOCUMENTACIÓN STPS COMPARTIDA (PASO 7)
+    // ============================================
+    // Un subcurso usa la documentación STPS de su curso inicial cuando éste ya tiene
+    // el alta (fecha de registro STPS) y el subcurso no capturó datos propios.
+    // UDEMY no se comparte: cada subcurso lo captura por separado.
+    public const STPS_CERTIFICACIONES = ['fecha_registro', 'dc5', 'certificado_comprobacion', 'carta_poder'];
+    public const STPS_RECURSOS = ['dc5_archivo', 'certificado_archivo', 'carta_poder_archivo'];
+
+    public function tieneAltaStps(): bool
+    {
+        return $this->certificaciones()
+            ->where('tipo_certificacion', 'fecha_registro')
+            ->whereNotNull('fecha_registro')
+            ->exists();
+    }
+
+    // Al guardar el paso 7 se crean filas aunque estén vacías (p. ej. tiene_firma = false),
+    // por eso se revisa que haya algún valor capturado y no sólo que exista la fila.
+    public function tieneStpsPropio(): bool
+    {
+        $conDatos = $this->certificaciones()
+            ->whereIn('tipo_certificacion', self::STPS_CERTIFICACIONES)
+            ->get()
+            ->contains(function ($certificacion) {
+                return !empty($certificacion->fecha_registro)
+                    || !empty($certificacion->nombre)
+                    || !empty($certificacion->drive_url)
+                    || !empty($certificacion->tiene_firma);
+            });
+
+        return $conDatos || $this->recursos()
+            ->whereIn('tipo_recurso', self::STPS_RECURSOS)
+            ->whereNotNull('url')
+            ->exists();
+    }
+
+    public function heredaStps(): bool
+    {
+        return !is_null($this->parent_id)
+            && $this->cursoPadre
+            && $this->cursoPadre->tieneAltaStps()
+            && !$this->tieneStpsPropio();
+    }
+
+    // Curso del que se toman los datos STPS: el curso inicial si se heredan, o el propio
+    public function cursoStps(): Cursos
+    {
+        return $this->heredaStps() ? $this->cursoPadre : $this;
+    }
 }

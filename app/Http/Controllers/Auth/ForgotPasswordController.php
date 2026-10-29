@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 class ForgotPasswordController extends Controller
 {
@@ -20,21 +21,24 @@ class ForgotPasswordController extends Controller
         // Validar la solicitud
         $request->validate(['email' => 'required|email']);
 
-        // Verificar si el usuario existe
-        $user = User::where('email', $request->email)->first();
+        // Mismo mensaje exista o no el correo, para no revelar qué cuentas están registradas
+        $mensajeEnviado = 'Si el correo está registrado, recibirás un enlace de restablecimiento.';
+
+        // Verificar si el usuario existe y está activo
+        $user = User::where('email', $request->email)->where('estatus', 1)->first();
 
         if (!$user) {
-            return redirect()->route('password.request')
-                            ->withErrors(['email' => 'No encontramos un usuario con esa dirección de correo.']);
+            return redirect()->route('password.request.custom')->with('status', $mensajeEnviado);
         }
 
         // Generar un token de restablecimiento
         $token = Str::random(60);
 
-        // Guardar el token en la base de datos
+        // Sólo un enlace vigente por correo; el token se guarda con hash
+        DB::table('password_resets')->where('email', $request->email)->delete();
         DB::table('password_resets')->insert([
             'email' => $request->email,
-            'token' => $token,
+            'token' => Hash::make($token),
             'created_at' => now(),
         ]);
 
@@ -50,10 +54,10 @@ class ForgotPasswordController extends Controller
                 $message->subject('Restablecer Contraseña');
             });
 
-            return redirect()->route('password.request')
-                            ->with('status', 'Se ha enviado un enlace de restablecimiento a tu correo.');
+            return redirect()->route('password.request.custom')
+                            ->with('status', $mensajeEnviado);
         } catch (\Exception $e) {
-            return redirect()->route('password.request')
+            return redirect()->route('password.request.custom')
                             ->withErrors(['email' => 'No se pudo enviar el correo. Por favor, intenta más tarde.']);
         }
     }

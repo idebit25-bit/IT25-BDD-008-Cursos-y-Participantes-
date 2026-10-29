@@ -61,9 +61,11 @@
                         <a href="{{ route('exportar.csv') }}" class="btn-action btn-primary-p shadow-sm" style="height: 40px; width: auto; min-width: 110px;">
                             <i class="fas fa-file-csv"></i> CSV
                         </a>
+                        @if(in_array(auth()->user()?->puesto, ['Programador', 'Administrador']))
                         <a href="{{ route('participantes.papelera') }}" class="btn-action btn-secondary-p shadow-sm" style="height: 40px; width: auto; min-width: 110px;">
                             <i class="fas fa-trash-alt"></i> Papelera
                         </a>
+                        @endif
                     @endif
                 </div>
             </div>
@@ -160,12 +162,14 @@
                                     <a href="{{ route('participantes.edit', ['id' => $participante->id]) }}" class="btn-action btn-warning-p" title="Editar">
                                         <i class="fas fa-edit"></i> Editar
                                     </a>
+                                    @if(in_array(auth()->user()?->puesto, ['Programador', 'Administrador']))
                                     <form action="{{ route('participantes.destroy', ['id' => $participante->id]) }}" method="POST" onsubmit="return confirm('¿Mover participante a la papelera?')" class="m-0 p-0">
                                         @csrf @method('DELETE')
                                         <button type="submit" class="btn-action btn-danger-p" title="Eliminar">
                                             <i class="fas fa-trash"></i> Borrar
                                         </button>
                                     </form>
+                                    @endif
                                 @endif
                             </div>
                         </td>

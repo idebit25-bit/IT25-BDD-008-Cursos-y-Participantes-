@@ -9,6 +9,9 @@ use Illuminate\Support\Facades\Auth;
 
 class UserController extends Controller
 {
+    // Puestos válidos; coinciden con RolePermissionController::getRolePermissions
+    private const PUESTOS = ['Programador', 'Administrador', 'Mantenimiento', 'Operacion'];
+
     public function index()
     {
         $users = User::where('estatus', 1)->get();
@@ -49,7 +52,7 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'apellido' => 'required|string|max:255',
             'email' => "required|email|unique:users,email,{$id}",
-            'puesto' => 'required|string|max:255',
+            'puesto' => 'required|in:' . implode(',', self::PUESTOS),
             'telefono' => 'required|string|max:15',
             'edad' => 'required|integer|min:18',
             'password' => 'nullable|min:8|confirmed', // La contraseña es opcional
@@ -65,11 +68,9 @@ class UserController extends Controller
         $user->telefono = $request->telefono;
         $user->edad = $request->edad;
 
-        // Si se proporciona una nueva contraseña, actualizarla y almacenarla en texto plano
+        // Si se proporciona una nueva contraseña, actualizarla (sólo se guarda el hash)
         if ($request->filled('password')) {
-            $plainPassword = $request->password; // Contraseña en texto plano
-            $user->password = Hash::make($plainPassword); // Contraseña hasheada
-            $user->plain_password = $plainPassword; // Almacenar la contraseña en texto plano
+            $user->password = Hash::make($request->password);
         }
 
         // Guardar los cambios en la base de datos
@@ -87,7 +88,7 @@ class UserController extends Controller
             'telefono' => 'required|string|max:15',
             'edad' => 'required|integer|min:18|max:90',
             'password' => 'required|string|min:8|confirmed',
-            'puesto' => 'required|string|max:255'
+            'puesto' => 'required|in:' . implode(',', self::PUESTOS)
         ], [
             'edad.min' => 'La edad mínima permitida es de 18 años.',
             'edad.max' => 'La edad máxima permitida es de 90 años.',
@@ -100,7 +101,6 @@ class UserController extends Controller
             'telefono' => $request->telefono,
             'edad' => $request->edad,
             'password' => Hash::make($request->password),
-            'plain_password' => $request->password, // Guardar contraseña en texto plano
             'puesto' => $request->puesto
         ]);
 
@@ -156,11 +156,11 @@ class UserController extends Controller
             return response()->json(['error' => 'Tu contraseña es incorrecta.'], 401);
         }
 
-        // Obtener el usuario cuya contraseña se quiere ver
-        $user = User::findOrFail($id);
-
-        // Devolver la contraseña en texto plano
-        return response()->json(['password' => $user->plain_password ?? 'No disponible']);
+        // Las contraseñas ya no se guardan en texto plano, por lo que no pueden mostrarse.
+        // Para cambiarla, usar la edición del usuario.
+        return response()->json([
+            'error' => 'Las contraseñas ya no se pueden consultar. Asigna una nueva desde "Editar".'
+        ], 410);
     }
 
     public function verifyAdminPassword(Request $request)

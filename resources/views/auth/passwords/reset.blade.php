@@ -191,15 +191,13 @@
         <h2>Restablecer Contraseña</h2>
 
         <!-- Mostrar errores -->
-        @if ($errors->any())
-            <div class="alert alert-danger">
-                <ul>
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        @endif
+        <div class="alert alert-danger" style="{{ $errors->any() ? '' : 'display: none;' }}">
+            <ul>
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
 
         <!-- Formulario -->
         <form id="resetPasswordForm">
@@ -289,11 +287,12 @@
             // Enviar la solicitud
             try {
                 const formData = new FormData(this);
-                const response = await fetch("{{ route('password.update') }}", {
+                const response = await fetch("{{ route('password.update.custom') }}", {
                     method: 'POST',
                     body: formData,
                     headers: {
-                        'X-CSRF-TOKEN': "{{ csrf_token() }}"
+                        'X-CSRF-TOKEN': "{{ csrf_token() }}",
+                        'Accept': 'application/json'
                     }
                 });
 
@@ -309,13 +308,15 @@
                 } else {
                     const data = await response.json();
                     if (data.errors) {
-                        let errorHtml = '<ul>';
-                        for (const error of Object.values(data.errors)) {
-                            errorHtml += `<li>${error}</li>`;
+                        const lista = document.createElement('ul');
+                        for (const error of Object.values(data.errors).flat()) {
+                            const item = document.createElement('li');
+                            item.textContent = error;
+                            lista.appendChild(item);
                         }
-                        errorHtml += '</ul>';
-                        document.querySelector('.alert-danger').innerHTML = errorHtml;
-                        document.querySelector('.alert-danger').style.display = 'block';
+                        const alerta = document.querySelector('.alert-danger');
+                        alerta.replaceChildren(lista);
+                        alerta.style.display = 'block';
                     }
                 }
             } catch (error) {

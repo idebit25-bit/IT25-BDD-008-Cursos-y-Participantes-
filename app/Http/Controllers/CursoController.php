@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\File;
 use App\Models\CourseActionLog;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use App\Models\Inscripcion;
 use App\Models\Participantes;
 
@@ -296,7 +297,29 @@ class CursoController extends Controller
             abort(404);
         }
 
-        return response()->file($path);
+        // Sólo PDF e imágenes se muestran en el navegador; el resto se descarga
+        $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+        $headers = ['X-Content-Type-Options' => 'nosniff'];
+        if (!in_array($extension, ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp'], true)) {
+            return response()->download($path, $filename, $headers);
+        }
+
+        return response()->file($path, $headers);
+    }
+
+    // Valida la extensión y genera un nombre seguro para un documento de curso
+    private function nombreArchivoCurso($file, string $inputName): string
+    {
+        $extension = strtolower($file->getClientOriginalExtension());
+        if (!in_array($extension, ArchivosController::EXTENSIONES_PERMITIDAS, true)) {
+            throw ValidationException::withMessages([
+                $inputName => 'Tipo de archivo no permitido. Formatos aceptados: ' . implode(', ', ArchivosController::EXTENSIONES_PERMITIDAS) . '.',
+            ]);
+        }
+
+        $nombreBase = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+        $nombreLimpio = preg_replace('/[^a-zA-Z0-9_-]/', '_', $nombreBase);
+        return time() . '_' . uniqid() . '_' . $nombreLimpio . '.' . $extension;
     }
 
     private function guardarArchivosCurso($curso, $request, $archivosMap)
@@ -309,12 +332,8 @@ class CursoController extends Controller
         foreach ($archivosMap as $inputName => $tipoRecurso) {
             if ($request->hasFile($inputName) && $request->file($inputName)->isValid()) {
                 $file = $request->file($inputName);
-                
-                $extension = $file->getClientOriginalExtension();
-                $nombreBase = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-                $nombreLimpio = preg_replace('/[^a-zA-Z0-9_-]/', '_', $nombreBase);
-                $fileName = time() . '_' . $nombreLimpio . '.' . $extension;
-                
+                $fileName = $this->nombreArchivoCurso($file, $inputName);
+
                 $file->move($cursoPath, $fileName);
                 $rutaPublica = 'cursos/' . $curso->id . '/' . $fileName;
                 
@@ -657,7 +676,7 @@ class CursoController extends Controller
         // Guardar archivo de presentación
         if ($request->hasFile('archivoPresentacion') && $request->file('archivoPresentacion')->isValid()) {
             $file = $request->file('archivoPresentacion');
-            $fileName = time() . '_' . uniqid() . '_' . $file->getClientOriginalName();
+            $fileName = $this->nombreArchivoCurso($file, 'archivoPresentacion');
             $cursoPath = storage_path('app/public/cursos/' . $curso->id);
             if (!file_exists($cursoPath)) {
                 mkdir($cursoPath, 0777, true);
@@ -718,26 +737,62 @@ class CursoController extends Controller
     public function mostrarPaso7() 
     { 
         $curso = Cursos::find(session('curso_id'));
-        $certificaciones = [];
-        $recursos = [];
-        $fechaRegistro = null;
-        
-        if ($curso) {
-            $certificacionesDb = $curso->certificaciones()->get()->keyBy('tipo_certificacion');
-            $recursosDb = $curso->recursos()->get()->keyBy('tipo_recurso');
-            
-            $certificaciones['dc5'] = $certificacionesDb->get('dc5');
-            $certificaciones['certificado_comprobacion'] = $certificacionesDb->get('certificado_comprobacion');
-            $certificaciones['carta_poder'] = $certificacionesDb->get('carta_poder');
-            $fechaRegistro = $certificacionesDb->get('fecha_registro');
-            
-            $recursos['dc5_archivo'] = $recursosDb->get('dc5_archivo');
-            $recursos['certificado_archivo'] = $recursosDb->get('certificado_archivo');
-            $recursos['carta_poder_archivo'] = $recursosDb->get('carta_poder_archivo');
-            $recursos['udemy'] = $recursosDb->get('udemy');
+        $datos = $curso
+            ? $this->datosPaso7($curso)
+            : ['certificaciones' => [], 'recursos' => [], 'fechaRegistro' => null, 'stpsHeredadoDe' => null, 'puedeUsarStpsInicial' => false];
+
+        return view('cursos.paso7', array_merge(['curso' => $curso], $datos));
+    }
+
+    // Datos del paso 7. Si el subcurso hereda STPS, se muestran los del curso inicial
+    // (sólo lectura); UDEMY siempre es del propio curso.
+    private function datosPaso7(Cursos $curso): array
+    {
+        $stpsHeredadoDe = $curso->heredaStps() ? $curso->cursoPadre : null;
+        $origenStps = $stpsHeredadoDe ?? $curso;
+
+        $certificacionesDb = $origenStps->certificaciones()->get()->keyBy('tipo_certificacion');
+        $recursosStpsDb = $origenStps->recursos()->get()->keyBy('tipo_recurso');
+
+        return [
+            'certificaciones' => [
+                'dc5' => $certificacionesDb->get('dc5'),
+                'certificado_comprobacion' => $certificacionesDb->get('certificado_comprobacion'),
+                'carta_poder' => $certificacionesDb->get('carta_poder'),
+            ],
+            'fechaRegistro' => $certificacionesDb->get('fecha_registro'),
+            'recursos' => [
+                'dc5_archivo' => $recursosStpsDb->get('dc5_archivo'),
+                'certificado_archivo' => $recursosStpsDb->get('certificado_archivo'),
+                'carta_poder_archivo' => $recursosStpsDb->get('carta_poder_archivo'),
+                'udemy' => $curso->recursos()->where('tipo_recurso', 'udemy')->first(),
+            ],
+            'stpsHeredadoDe' => $stpsHeredadoDe,
+            // Subcurso con datos propios cuyo curso inicial ya tiene el alta
+            'puedeUsarStpsInicial' => !$stpsHeredadoDe && $curso->parent_id && $curso->cursoPadre?->tieneAltaStps(),
+        ];
+    }
+
+    // Descarta la documentación STPS propia del subcurso para usar la del curso inicial
+    public function usarStpsCursoInicial(Cursos $curso)
+    {
+        if (!$curso->parent_id || !$curso->cursoPadre?->tieneAltaStps()) {
+            return back()->with('error', 'El curso inicial todavía no tiene el alta STPS.');
         }
-        
-        return view('cursos.paso7', compact('curso', 'certificaciones', 'recursos', 'fechaRegistro')); 
+
+        $curso->certificaciones()->whereIn('tipo_certificacion', Cursos::STPS_CERTIFICACIONES)->delete();
+        $curso->recursos()->whereIn('tipo_recurso', Cursos::STPS_RECURSOS)->delete();
+
+        CourseActionLog::create([
+            'curso_id' => $curso->id,
+            'nombre_curso' => $curso->nombre,
+            'user_id' => Auth::id(),
+            'accion' => 'Editado',
+            'detalles' => 'El subcurso ahora usa la documentación STPS del curso inicial.',
+            'fecha_accion' => now(),
+        ]);
+
+        return back()->with('success', 'El subcurso ahora usa la documentación STPS del curso inicial.');
     }
     
     public function guardarPaso7(Request $request) 
@@ -759,44 +814,47 @@ class CursoController extends Controller
         $cartaFirma = ($v['CartaPoderTieneFirma'] ?? 'No') === 'Si';
         $udemyBool = ($v['UDEMY'] ?? 'No se ha prellenado') === 'Prellenado';
 
-        // Guardar FECHA en curso_certificaciones
-        if (!empty($v['FechaRegistroSTPS'])) {
-            CursoCertificacion::updateOrCreate(
-                ['curso_id' => $curso->id, 'tipo_certificacion' => 'fecha_registro'],
-                ['fecha_registro' => $v['FechaRegistroSTPS']]
-            );
-        } else {
-            $curso->certificaciones()->where('tipo_certificacion', 'fecha_registro')->delete();
-        }
-
-        // Guardar certificaciones
-        $certificacionesMap = [
-            'dc5' => ['nombre' => $v['FormatoDC5'] ?? null, 'tiene_firma' => $dc5Firma],
-            'certificado_comprobacion' => [
-                'nombre' => $v['CertificadoComprobacion'] ?? null,
-                'drive_url' => $v['DriveCertificadoComprobacion'] ?? null
-            ],
-            'carta_poder' => [
-                'drive_url' => $v['DriveCartaPoder'] ?? null,
-                'tiene_firma' => $cartaFirma
-            ],
-        ];
-
-        foreach ($certificacionesMap as $tipo => $data) {
-            if (!empty($data['nombre']) || !empty($data['drive_url']) || isset($data['tiene_firma'])) {
+        // Si el subcurso hereda STPS del curso inicial, sólo se guarda UDEMY
+        if (!$curso->heredaStps()) {
+            // Guardar FECHA en curso_certificaciones
+            if (!empty($v['FechaRegistroSTPS'])) {
                 CursoCertificacion::updateOrCreate(
-                    ['curso_id' => $curso->id, 'tipo_certificacion' => $tipo],
-                    $data
+                    ['curso_id' => $curso->id, 'tipo_certificacion' => 'fecha_registro'],
+                    ['fecha_registro' => $v['FechaRegistroSTPS']]
                 );
+            } else {
+                $curso->certificaciones()->where('tipo_certificacion', 'fecha_registro')->delete();
             }
-        }
 
-        // Guardar archivos
-        $this->guardarArchivosCurso($curso, $request, [
-            'archivoDC5' => 'dc5_archivo',
-            'archivoCertificado' => 'certificado_archivo',
-            'archivoCartaPoder' => 'carta_poder_archivo',
-        ]);
+            // Guardar certificaciones
+            $certificacionesMap = [
+                'dc5' => ['nombre' => $v['FormatoDC5'] ?? null, 'tiene_firma' => $dc5Firma],
+                'certificado_comprobacion' => [
+                    'nombre' => $v['CertificadoComprobacion'] ?? null,
+                    'drive_url' => $v['DriveCertificadoComprobacion'] ?? null
+                ],
+                'carta_poder' => [
+                    'drive_url' => $v['DriveCartaPoder'] ?? null,
+                    'tiene_firma' => $cartaFirma
+                ],
+            ];
+
+            foreach ($certificacionesMap as $tipo => $data) {
+                if (!empty($data['nombre']) || !empty($data['drive_url']) || isset($data['tiene_firma'])) {
+                    CursoCertificacion::updateOrCreate(
+                        ['curso_id' => $curso->id, 'tipo_certificacion' => $tipo],
+                        $data
+                    );
+                }
+            }
+
+            // Guardar archivos
+            $this->guardarArchivosCurso($curso, $request, [
+                'archivoDC5' => 'dc5_archivo',
+                'archivoCertificado' => 'certificado_archivo',
+                'archivoCartaPoder' => 'carta_poder_archivo',
+            ]);
+        }
 
         // Guardar UDEMY
         if ($udemyBool) {
@@ -881,15 +939,7 @@ class CursoController extends Controller
                 return view('cursos.edit-paso6', compact('curso', 'recursos', 'evaluaciones'));
                 
             case 7:
-                $certificaciones['dc5'] = $certificacionesDb->get('dc5');
-                $certificaciones['certificado_comprobacion'] = $certificacionesDb->get('certificado_comprobacion');
-                $certificaciones['carta_poder'] = $certificacionesDb->get('carta_poder');
-                $fechaRegistro = $certificacionesDb->get('fecha_registro');
-                $recursos['dc5_archivo'] = $recursosDb->get('dc5_archivo');
-                $recursos['certificado_archivo'] = $recursosDb->get('certificado_archivo');
-                $recursos['carta_poder_archivo'] = $recursosDb->get('carta_poder_archivo');
-                $recursos['udemy'] = $recursosDb->get('udemy');
-                return view('cursos.edit-paso7', compact('curso', 'certificaciones', 'recursos', 'fechaRegistro'));
+                return view('cursos.edit-paso7', array_merge(['curso' => $curso], $this->datosPaso7($curso)));
                 
             default:
                 return redirect()->route('cursos.index');
@@ -1031,7 +1081,7 @@ class CursoController extends Controller
             // Guardar archivo de presentacion
             if ($request->hasFile('archivoPresentacion') && $request->file('archivoPresentacion')->isValid()) {
                 $file = $request->file('archivoPresentacion');
-                $fileName = time() . '_' . uniqid() . '_' . $file->getClientOriginalName();
+                $fileName = $this->nombreArchivoCurso($file, 'archivoPresentacion');
                 $cursoPath = storage_path('app/public/cursos/' . $curso->id);
                 if (!file_exists($cursoPath)) {
                     mkdir($cursoPath, 0777, true);
@@ -1088,44 +1138,47 @@ class CursoController extends Controller
             $cartaFirma = ($request->CartaPoderTieneFirma ?? 'No') === 'Si';
             $udemyBool = ($request->UDEMY ?? 'No se ha prellenado') === 'Prellenado';
 
-            // Guardar FECHA en curso_certificaciones
-            if (!empty($request->FechaRegistroSTPS)) {
-                CursoCertificacion::updateOrCreate(
-                    ['curso_id' => $curso->id, 'tipo_certificacion' => 'fecha_registro'],
-                    ['fecha_registro' => $request->FechaRegistroSTPS]
-                );
-            } else {
-                $curso->certificaciones()->where('tipo_certificacion', 'fecha_registro')->delete();
-            }
-
-            $certificacionesMap = [
-                'dc5' => ['nombre' => $request->FormatoDC5, 'tiene_firma' => $dc5Firma],
-                'certificado_comprobacion' => [
-                    'nombre' => $request->CertificadoComprobacion,
-                    'drive_url' => $request->DriveCertificadoComprobacion
-                ],
-                'carta_poder' => [
-                    'drive_url' => $request->DriveCartaPoder,
-                    'tiene_firma' => $cartaFirma
-                ],
-            ];
-
-            foreach ($certificacionesMap as $tipo => $data) {
-                if (!empty($data['nombre']) || !empty($data['drive_url']) || isset($data['tiene_firma'])) {
+            // Si el subcurso hereda STPS del curso inicial, sólo se guarda UDEMY
+            if (!$curso->heredaStps()) {
+                // Guardar FECHA en curso_certificaciones
+                if (!empty($request->FechaRegistroSTPS)) {
                     CursoCertificacion::updateOrCreate(
-                        ['curso_id' => $curso->id, 'tipo_certificacion' => $tipo],
-                        $data
+                        ['curso_id' => $curso->id, 'tipo_certificacion' => 'fecha_registro'],
+                        ['fecha_registro' => $request->FechaRegistroSTPS]
                     );
                 } else {
-                    $curso->certificaciones()->where('tipo_certificacion', $tipo)->delete();
+                    $curso->certificaciones()->where('tipo_certificacion', 'fecha_registro')->delete();
                 }
-            }
 
-            $this->guardarArchivosCurso($curso, $request, [
-                'archivoDC5' => 'dc5_archivo',
-                'archivoCertificado' => 'certificado_archivo',
-                'archivoCartaPoder' => 'carta_poder_archivo',
-            ]);
+                $certificacionesMap = [
+                    'dc5' => ['nombre' => $request->FormatoDC5, 'tiene_firma' => $dc5Firma],
+                    'certificado_comprobacion' => [
+                        'nombre' => $request->CertificadoComprobacion,
+                        'drive_url' => $request->DriveCertificadoComprobacion
+                    ],
+                    'carta_poder' => [
+                        'drive_url' => $request->DriveCartaPoder,
+                        'tiene_firma' => $cartaFirma
+                    ],
+                ];
+
+                foreach ($certificacionesMap as $tipo => $data) {
+                    if (!empty($data['nombre']) || !empty($data['drive_url']) || isset($data['tiene_firma'])) {
+                        CursoCertificacion::updateOrCreate(
+                            ['curso_id' => $curso->id, 'tipo_certificacion' => $tipo],
+                            $data
+                        );
+                    } else {
+                        $curso->certificaciones()->where('tipo_certificacion', $tipo)->delete();
+                    }
+                }
+
+                $this->guardarArchivosCurso($curso, $request, [
+                    'archivoDC5' => 'dc5_archivo',
+                    'archivoCertificado' => 'certificado_archivo',
+                    'archivoCartaPoder' => 'carta_poder_archivo',
+                ]);
+            }
 
             if ($udemyBool) {
                 CursoRecurso::updateOrCreate(
@@ -1222,6 +1275,10 @@ class CursoController extends Controller
             return $evaluacion && !empty($evaluacion->url);
         }
         if ($tipo === 'certificaciones') {
+            // La documentación STPS heredada cuenta como capturada en el subcurso
+            if (in_array($subCampo, Cursos::STPS_CERTIFICACIONES, true)) {
+                $curso = $curso->cursoStps();
+            }
             $certificacion = $curso->certificaciones()->where('tipo_certificacion', $subCampo)->first();
             if ($subCampo === 'dc3') {
                 return $certificacion && !empty($certificacion->nombre);

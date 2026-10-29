@@ -168,7 +168,7 @@
         </script>
     @endif
 
-    <form action="{{ route('password.email') }}" method="POST" id="resetPasswordForm">
+    <form action="{{ route('password.email.custom') }}" method="POST" id="resetPasswordForm">
         @csrf
         <div class="form-group">
             <label for="email">Correo Electrónico</label>
