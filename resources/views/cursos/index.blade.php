@@ -34,7 +34,7 @@
         z-index: 5; 
         box-shadow: -5px 0 10px rgba(0,0,0,0.05); 
     }
-    tr:hover .sticky-col { background-color: #f8f9fa !important; }
+    .table > tbody > tr:hover > td.sticky-col { background-color: #f8f9fa !important; }
     
     /* Botones uniformes */
     .btn-action {
@@ -119,7 +119,15 @@
             </div>
             <div class="col-md-8 text-end">
                 <div class="d-flex justify-content-end gap-2 flex-wrap">
-                    <form action="{{ route('cursos.index') }}" method="GET" class="d-flex me-2">
+                    <form id="courseSearchForm" action="{{ route('cursos.index') }}" method="GET" class="d-flex me-2">
+                        <input type="hidden" name="instructor" value="{{ request('instructor') }}">
+                        <label for="ordenCursos" class="visually-hidden">Ordenar cursos</label>
+                        <select id="ordenCursos" name="orden" class="form-select me-2" style="width: auto;" onchange="this.form.requestSubmit()">
+                            <option value="id_asc" @selected($orden === 'id_asc')>ID: A–Z</option>
+                            <option value="id_desc" @selected($orden === 'id_desc')>ID: Z–A</option>
+                            <option value="nombre_asc" @selected($orden === 'nombre_asc')>Nombre: A–Z</option>
+                            <option value="nombre_desc" @selected($orden === 'nombre_desc')>Nombre: Z–A</option>
+                        </select>
                         <div class="input-group shadow-sm" style="border-radius: 6px; overflow: hidden;">
                             <input type="text" name="search" class="form-control border-0" placeholder="Buscar curso..." value="{{ request('search') }}" style="height: 40px;">
                             <button type="submit" class="btn btn-dark" style="border-radius: 6px; margin: 0; height: 40px; min-width: 50px;"><i class="fas fa-search"></i></button>
@@ -140,6 +148,41 @@
                 </div>
             </div>
         </div>
+
+        <section class="course-filters border rounded p-3 mb-4 bg-light" aria-labelledby="courseFiltersTitle">
+            <h2 id="courseFiltersTitle" class="h6 mb-3">Filtros de cursos</h2>
+            <div class="row g-3 align-items-end">
+                <fieldset class="col-12 col-lg-4 mb-0">
+                    <legend class="form-label fs-6">Visualización</legend>
+                    <div class="d-flex flex-wrap gap-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="viewOption" id="defaultView" value="default" checked>
+                            <label class="form-check-label" for="defaultView">Vista predeterminada</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="viewOption" id="driveView" value="drive">
+                            <label class="form-check-label" for="driveView">Links de Drive</label>
+                        </div>
+                    </div>
+                </fieldset>
+                <div class="col-12 col-md-6 col-lg-4">
+                    <label for="instructorFilter" class="form-label">Instructor</label>
+                    <select id="instructorFilter" class="form-select" onchange="const form = document.getElementById('courseSearchForm'); form.elements.instructor.value = this.value; form.requestSubmit();">
+                        <option value="">Todos los instructores</option>
+                        @foreach(\App\Models\Cursos::whereNotNull('instructor_responsable')->distinct()->orderBy('instructor_responsable')->pluck('instructor_responsable') as $instructor)
+                            <option value="{{ $instructor }}" @selected(request('instructor') === $instructor)>{{ $instructor }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <fieldset class="col-12 col-md-6 col-lg-4 mb-0">
+                    <legend class="form-label fs-6">Rango de costo</legend>
+                    <div class="input-group">
+                        <input type="number" id="costMinFilter" class="form-control" placeholder="Mínimo" aria-label="Costo mínimo">
+                        <input type="number" id="costMaxFilter" class="form-control" placeholder="Máximo" aria-label="Costo máximo">
+                    </div>
+                </fieldset>
+            </div>
+        </section>
 
         @if(session('success'))
             <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">

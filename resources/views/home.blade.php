@@ -715,59 +715,10 @@ select,
         </a>
   </li>
 <li class="nav-item">
-        <a href="https://erp.idebmexico.com/inicio" rel="noopener noreferrer" class="nav-link menu-item">
+        <a href="{{ config('services.erp.url') }}" rel="noopener noreferrer" class="nav-link menu-item">
             <i class="fa-solid fa-house"></i> <span>Regresar al Inicio IDEB</span>
         </a>
   </li>
-@if(request()->routeIs('cursos.index') && isset($cursos) && isset($subcursos))
-<li>
-    <div class="sidebar">
-        <h5>Filtros de Curso</h5>
-        <div class="filter-section">
-            <h6>Opciones de Visualización</h6>
-            <div class="form-check">
-                <input class="form-check-input" type="radio" name="viewOption" id="defaultView" value="default" checked>
-                <label class="form-check-label" for="defaultView">
-                    Vista Predeterminada
-                </label>
-            </div>
-            <div class="form-check">
-                <input class="form-check-input" type="radio" name="viewOption" id="driveView" value="drive">
-                <label class="form-check-label" for="driveView">
-                    Vista de Links Drive
-                </label>
-            </div>
-        </div>
-        <div class="filter-section">
-            <h6>Filtros Adicionales</h6>
-            <div class="mb-3">
-                <label for="instructorFilter" class="form-label">Instructor</label>
-                <select id="instructorFilter" class="form-select" onchange="window.location.href='{{ route('cursos.index') }}?instructor=' + this.value + '&search={{ request('search') }}'">
-                    <option value="">Todos los Instructores</option>
-                    @php
-                        // Obtenemos todos los instructores de la BD para el filtro, no solo los de la página actual
-                        $instructores = \App\Models\Cursos::whereNotNull('instructor_responsable')
-                            ->distinct()
-                            ->pluck('instructor_responsable')
-                            ->sort();
-                    @endphp
-                    @foreach($instructores as $instructor)
-                        <option value="{{ $instructor }}" {{ request('instructor') == $instructor ? 'selected' : '' }}>{{ $instructor }}</option>
-                    @endforeach
-                </select>
-            </div>
-
-            <div class="mb-3">
-                <label for="costoFilter" class="form-label">Rango de Costo</label>
-                <div class="input-group">
-                    <input type="number" id="costMinFilter" class="form-control" placeholder="Mínimo">
-                    <input type="number" id="costMaxFilter" class="form-control" placeholder="Máximo">
-                </div>
-            </div>
-        </div>
-    </div> 
-</li>
-@endif
 
 
 </ul>

@@ -30,6 +30,15 @@ class CursoController extends Controller
     {
         $search = $request->get('search');
         $instructor = $request->get('instructor');
+        $ordenes = [
+            'id_asc' => ['nomenclatura', 'asc'],
+            'id_desc' => ['nomenclatura', 'desc'],
+            'nombre_asc' => ['nombre', 'asc'],
+            'nombre_desc' => ['nombre', 'desc'],
+        ];
+        $orden = $request->query('orden', $request->session()->get('cursos.orden', 'id_asc'));
+        if (!is_string($orden) || !array_key_exists($orden, $ordenes)) $orden = 'id_asc';
+        $request->session()->put('cursos.orden', $orden);
 
         $query = Cursos::whereNull('parent_id')->whereIn('status', [0, 1]);
 
@@ -45,10 +54,13 @@ class CursoController extends Controller
             $query->where('instructor_responsable', $instructor);
         }
 
-        $cursos = $query->orderBy('created_at', 'desc')->paginate(5)->withQueryString();
+        // Ordenar antes de paginar mantiene la secuencia en búsquedas y al regresar.
+        [$columna, $direccion] = $ordenes[$orden];
+        $cursos = $query->orderBy($columna, $direccion)->orderBy('id', 'asc')
+            ->paginate(5)->withQueryString()->appends(['orden' => $orden]);
         $subcursos = Cursos::whereNotNull('parent_id')->get(); 
 
-        return view('cursos.index', compact('cursos', 'subcursos'));
+        return view('cursos.index', compact('cursos', 'subcursos', 'orden'));
     }
 
     public function obtenerSubcursos($cursoId, Request $request)
