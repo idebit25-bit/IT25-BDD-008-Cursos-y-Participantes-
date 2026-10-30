@@ -192,4 +192,50 @@ class Cursos extends Model
     {
         return $this->heredaStps() ? $this->cursoPadre : $this;
     }
+
+    // ============================================
+    // ESTADO DC3 AUTOMÁTICO (PASO 6)
+    // ============================================
+    // Se calcula con la documentación STPS del paso 7 (heredada en subcursos).
+    // "No se entrega" es la única decisión manual: cursos que no otorgan DC3.
+    public const DC3_SE_ENTREGA = 'Se entrega DC3';
+    public const DC3_PENDIENTE = 'Entrega pendiente de DC3';
+    public const DC3_NO_SE_ENTREGA = 'No se entrega DC3';
+
+    public function estadoDc3(): array
+    {
+        $origen = $this->cursoStps();
+        $certificaciones = $origen->certificaciones()
+            ->whereIn('tipo_certificacion', self::STPS_CERTIFICACIONES)
+            ->get()
+            ->keyBy('tipo_certificacion');
+
+        $requisitos = [
+            'Fecha de registro STPS' => !empty($certificaciones->get('fecha_registro')?->fecha_registro),
+            'Formato DC5 firmado' => (bool) $certificaciones->get('dc5')?->tiene_firma,
+            'Certificado de comprobación obtenido' => $certificaciones->get('certificado_comprobacion')?->nombre === 'Ya obtenida',
+            'Carta poder firmada' => (bool) $certificaciones->get('carta_poder')?->tiene_firma,
+        ];
+
+        $noOtorga = $this->certificaciones()
+            ->where('tipo_certificacion', 'dc3')
+            ->where('nombre', self::DC3_NO_SE_ENTREGA)
+            ->exists();
+
+        if ($noOtorga) {
+            $estado = self::DC3_NO_SE_ENTREGA;
+        } elseif (!in_array(false, $requisitos, true)) {
+            $estado = self::DC3_SE_ENTREGA;
+        } else {
+            $estado = self::DC3_PENDIENTE;
+        }
+
+        return [
+            'estado' => $estado,
+            'requisitos' => $requisitos,
+            'faltantes' => array_keys(array_filter($requisitos, fn ($cumplido) => !$cumplido)),
+            'noOtorga' => $noOtorga,
+            'heredadoDe' => $origen->is($this) ? null : $origen,
+        ];
+    }
 }

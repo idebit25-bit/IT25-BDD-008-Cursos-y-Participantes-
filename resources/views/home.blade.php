@@ -179,6 +179,39 @@
             right: 5px;
         }
 
+        /* Tooltip del menú compacto: se crea fuera del <nav> para que su overflow no lo recorte */
+        .sidebar-tooltip {
+            position: fixed;
+            z-index: 1100;
+            background-color: #212529;
+            color: #fff;
+            font-size: 13px;
+            line-height: 1.2;
+            padding: 6px 10px;
+            border-radius: 4px;
+            white-space: nowrap;
+            pointer-events: none;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            transform: translate(-4px, -50%);
+            transition: opacity 0.15s ease, transform 0.15s ease;
+        }
+
+        .sidebar-tooltip.visible {
+            opacity: 1;
+            transform: translate(0, -50%);
+        }
+
+        .sidebar-tooltip::before {
+            content: '';
+            position: absolute;
+            right: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+            border: 5px solid transparent;
+            border-right-color: #212529;
+        }
+
         /* Overlay */
         .overlay {
             position: fixed;
@@ -954,6 +987,40 @@ document.addEventListener('DOMContentLoaded', function() {
     menuToggle.addEventListener('click', toggleMenu);
     overlay.addEventListener('click', toggleMenu);
     toggleFixedMenu.addEventListener('click', toggleFixed);
+
+    // Tooltips del menú compacto: sólo cuando la barra está colapsada (clase "fixed")
+    const sidebarTooltip = document.createElement('div');
+    sidebarTooltip.className = 'sidebar-tooltip';
+    sidebarTooltip.setAttribute('role', 'tooltip');
+    sidebarTooltip.id = 'sidebarTooltip';
+    document.body.appendChild(sidebarTooltip);
+
+    function mostrarTooltip(link) {
+        const texto = link.querySelector('span')?.textContent.trim();
+        if (!verticalMenu.classList.contains('fixed') || !texto) return;
+
+        const rect = link.getBoundingClientRect();
+        sidebarTooltip.textContent = texto;
+        sidebarTooltip.style.left = (rect.right + 8) + 'px';
+        sidebarTooltip.style.top = (rect.top + rect.height / 2) + 'px';
+        sidebarTooltip.classList.add('visible');
+        link.setAttribute('aria-describedby', 'sidebarTooltip');
+    }
+
+    function ocultarTooltip(link) {
+        sidebarTooltip.classList.remove('visible');
+        link?.removeAttribute('aria-describedby');
+    }
+
+    verticalMenu.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('mouseenter', () => mostrarTooltip(link));
+        link.addEventListener('focus', () => mostrarTooltip(link));
+        link.addEventListener('mouseleave', () => ocultarTooltip(link));
+        link.addEventListener('blur', () => ocultarTooltip(link));
+        link.addEventListener('click', () => ocultarTooltip(link));
+    });
+    verticalMenu.addEventListener('scroll', () => ocultarTooltip());
+    toggleFixedMenu.addEventListener('click', () => ocultarTooltip());
 
     // Cerrar menú en enlaces si no está fijo
     document.querySelectorAll('.nav-link').forEach(link => {

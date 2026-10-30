@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use App\Models\User;
@@ -51,12 +52,14 @@ class ForgotPasswordController extends Controller
                 'url' => $url
             ], function ($message) use ($request) {
                 $message->to($request->email);
-                $message->subject('Restablecer Contraseña');
+                $message->subject('Restablecer contraseña - Gestor Instituto I-DEB');
             });
 
             return redirect()->route('password.request.custom')
                             ->with('status', $mensajeEnviado);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            Log::error('No se pudo enviar el enlace de restablecimiento: ' . $e->getMessage());
+
             return redirect()->route('password.request.custom')
                             ->withErrors(['email' => 'No se pudo enviar el correo. Por favor, intenta más tarde.']);
         }

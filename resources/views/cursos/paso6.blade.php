@@ -464,24 +464,7 @@
                                 <div class="eval-title"><i class="fas fa-certificate"></i> DC3</div>
                                 <div class="row g-3">
                                     <div class="col-md-12">
-                                        <label for="DC3" class="form-label">
-                                            Estado del DC3
-                                            <span class="estado-indicador" id="estado-DC3"></span>
-                                        </label>
-                                        <div class="input-group">
-                                            <span class="input-group-text"><i class="fas fa-info-circle"></i></span>
-                                            <select name="DC3" id="DC3" 
-                                                class="form-select @error('DC3') is-invalid @enderror" 
-                                                onchange="validarSelect(this)">
-                                                <option value="" disabled {{ old('DC3', isset($recursos['dc3']) ? $recursos['dc3']->nombre : '') ? '' : 'selected' }}>Seleccione el estado del DC3</option>
-                                                <option value="Se entrega DC3" {{ old('DC3', isset($recursos['dc3']) ? $recursos['dc3']->nombre : '') == 'Se entrega DC3' ? 'selected' : '' }}>Se entrega DC3</option>
-                                                <option value="No se entrega DC3" {{ old('DC3', isset($recursos['dc3']) ? $recursos['dc3']->nombre : '') == 'No se entrega DC3' ? 'selected' : '' }}>No se entrega DC3</option>
-                                                <option value="Entrega pendiente de DC3" {{ old('DC3', isset($recursos['dc3']) ? $recursos['dc3']->nombre : '') == 'Entrega pendiente de DC3' ? 'selected' : '' }}>Entrega pendiente de DC3</option>
-                                            </select>
-                                            @error('DC3')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
+                                        @include('cursos.partials.estado-dc3')
                                     </div>
                                 </div>
                             </div>
@@ -522,9 +505,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     document.querySelectorAll('#DrivePresentacion, #DriveEvaluacionDiagnostica, #DriveEvaluacionSatisfaccion, #DriveEvaluacionFinal').forEach(campo => {
         validarDrive(campo);
-    });
-    document.querySelectorAll('#DC3').forEach(campo => {
-        validarSelect(campo);
     });
     actualizarContadores();
     actualizarEstadoGeneral();

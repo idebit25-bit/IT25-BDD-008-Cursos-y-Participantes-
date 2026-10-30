@@ -223,7 +223,7 @@
                     <td>{{ $curso->Evaluación_diagnostica }}</td>
                     <td>{{ $curso->EvaluaciondeSatisfacción }}</td>
                     <td>{{ $curso->EvaluacionFinal }}</td>
-                    <td>{{ $curso->DC3 }}</td>
+                    <td>{{ $curso->estadoDc3()['estado'] }}</td>
                 </tr>
             </tbody>
         </table>

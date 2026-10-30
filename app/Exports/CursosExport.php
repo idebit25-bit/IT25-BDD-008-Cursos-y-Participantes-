@@ -113,7 +113,7 @@ class CursosExport implements FromCollection, WithHeadings, WithMapping, WithSty
             $curso->Evaluación_diagnostica, // Conservar valor original
             $curso->EvaluaciondeSatisfacción, // Conservar valor original
             $curso->EvaluacionFinal, // Conservar valor original
-            $curso->DC3, // Conservar valor original
+            $curso->estadoDc3()['estado'], // Calculado (Cursos::estadoDc3)
             $curso->FechadeRegistro_STPS ? \Carbon\Carbon::parse($curso->FechadeRegistro_STPS)->format('d/m/Y') : '',
             $curso->Formato_DC5, // Conservar valor original
             $this->formatValue('Formato_DC5_Tienefirma', $curso->Formato_DC5_Tienefirma),

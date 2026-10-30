@@ -198,7 +198,7 @@
                                 <span class="data-label mb-2">Evaluación y Certificación</span>
                                 <div class="d-flex flex-wrap gap-2">
                                     <span class="badge bg-light text-dark border">Diag: {{ $curso->evaluacion_diagnostica ?: $curso->Evaluación_diagnostica }}</span>
-                                    <span class="badge bg-light text-dark border">DC3: {{ $curso->dc3 ?: $curso->DC3 }}</span>
+                                    <span class="badge bg-light text-dark border">DC3: {{ $curso->estadoDc3()['estado'] }}</span>
                                 </div>
                             </div>
                             

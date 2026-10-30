@@ -194,7 +194,7 @@ Route::middleware(['auth', 'active'])->group(function () use ($rolEdicion, $rolE
         Route::get('/curso/paso5', [CursoController::class, 'mostrarPaso5'])->name('curso.paso5');
         Route::post('/curso/paso5', [CursoController::class, 'guardarPaso5'])->name('curso.paso5.guardar');
         Route::get('/curso/paso6', [CursoController::class, 'mostrarPaso6'])->name('curso.paso6');
-        //Route::post('/curso/paso6', [CursoController::class, 'guardarPaso6'])->name('curso.paso6.guardar');
+        Route::post('/curso/paso6', [CursoController::class, 'guardarPaso6'])->name('curso.paso6.guardar');
         Route::get('/curso/paso7', [CursoController::class, 'mostrarPaso7'])->name('curso.paso7');
         Route::post('/curso/paso7', [CursoController::class, 'guardarPaso7'])->name('curso.guardar-paso7');
 

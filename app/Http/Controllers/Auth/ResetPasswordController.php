@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use App\Models\User;
 use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\PasswordChangedAdminNotification;
 use Illuminate\Support\Str;
@@ -62,9 +63,15 @@ class ResetPasswordController extends Controller
         $ip = $request->ip();
         $time = Carbon::now()->setTimezone('America/Mexico_City')->toDateTimeString(); // Fecha y hora en tu zona horaria
 
-        // Enviar el correo al administrador
-        $adminEmail = '2123200418@soy.utj.edu.mx'; // Reemplaza con el correo del administrador
-        Mail::to($adminEmail)->send(new PasswordChangedAdminNotification($user, $time, $ip));
+        // Avisar al administrador; si el correo falla, la contraseña ya quedó cambiada
+        $adminEmail = config('mail.admin_address');
+        if ($adminEmail) {
+            try {
+                Mail::to($adminEmail)->send(new PasswordChangedAdminNotification($user, $time, $ip));
+            } catch (\Throwable $e) {
+                Log::error('No se pudo enviar el aviso de cambio de contraseña: ' . $e->getMessage());
+            }
+        }
 
         // Eliminar el registro del token
         DB::table('password_resets')->where('email', $request->email)->delete();

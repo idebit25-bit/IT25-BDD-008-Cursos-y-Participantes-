@@ -83,3 +83,31 @@ tenía datos propios, se conservan; el paso 7 ofrece "Usar datos del curso inici
 
 En la demo: `ID-A02` (con alta) → `ID-A02-01` hereda; `ID-A10` recibió alta
 durante las pruebas y `ID-A10-01` ya usa sus datos.
+
+## Correo (recuperación de contraseña)
+
+Se usa un solo buzón (`capital.humano@i-deb.com.mx`, SMTP de IONOS) para enviar los enlaces de restablecimiento y para recibir el aviso de cambio de contraseña. Variables en `.env`:
+
+```
+MAIL_MAILER=smtp
+MAIL_SCHEME=smtps
+MAIL_HOST=smtp.ionos.mx
+MAIL_PORT=465
+MAIL_USERNAME=capital.humano@i-deb.com.mx
+MAIL_PASSWORD=        # contraseña del buzón, nunca se versiona
+MAIL_FROM_ADDRESS=capital.humano@i-deb.com.mx
+MAIL_FROM_NAME="Capital Humano - I-DEB"
+MAIL_ADMIN_ADDRESS=capital.humano@i-deb.com.mx   # opcional; si falta se usa MAIL_FROM_ADDRESS
+```
+
+Después de editar `.env`: `php artisan config:clear`.
+
+Prueba rápida de envío:
+
+```
+php artisan tinker --execute="Mail::raw('Prueba de correo del Gestor', fn(\$m) => \$m->to('capital.humano@i-deb.com.mx')->subject('Prueba SMTP'));"
+```
+
+- El enlace del correo usa `APP_URL`; en local apunta a `http://127.0.0.1:8000` y sólo abre en el mismo equipo.
+- Si el envío falla, el usuario ve "No se pudo enviar el correo" y el detalle queda en `storage/logs/laravel.log`. Si falla el aviso al administrador, la contraseña sí se cambia.
+- 30/10/2026: desde la red de trabajo no salen los puertos SMTP (465, 587 ni 25, tampoco a Gmail). Para probar en local hay que usar otra red (p. ej. datos del celular) o probar directamente en el hosting.

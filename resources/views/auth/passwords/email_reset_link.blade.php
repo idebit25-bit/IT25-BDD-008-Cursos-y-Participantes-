@@ -9,8 +9,9 @@
     <p>Hola,</p>
     <p>Hemos recibido una solicitud para restablecer tu contraseña. Puedes restablecer tu contraseña haciendo clic en el siguiente enlace:</p>
     <p><a href="{{ $url }}">Restablecer Contraseña</a></p>
+    <p>El enlace es válido por 60 minutos y sólo puede usarse una vez.</p>
     <p>Si no has solicitado un restablecimiento de contraseña, no se requiere ninguna acción adicional.</p>
     <p>Gracias,</p>
-    <p>Tu equipo de soporte</p>
+    <p>Capital Humano - I-DEB</p>
 </body>
 </html>

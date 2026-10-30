@@ -345,6 +345,20 @@ class CursoController extends Controller
         }
     }
 
+    // El estado DC3 se calcula (Cursos::estadoDc3); sólo se guarda la excepción
+    // "este curso no otorga DC3". Valores manuales anteriores se descartan.
+    private function guardarExcepcionDc3(Cursos $curso, bool $noOtorga): void
+    {
+        if ($noOtorga) {
+            CursoCertificacion::updateOrCreate(
+                ['curso_id' => $curso->id, 'tipo_certificacion' => 'dc3'],
+                ['nombre' => Cursos::DC3_NO_SE_ENTREGA]
+            );
+        } else {
+            $curso->certificaciones()->where('tipo_certificacion', 'dc3')->delete();
+        }
+    }
+
     // ============================================
     // PASO 1
     // ============================================
@@ -638,10 +652,10 @@ class CursoController extends Controller
             $evaluaciones['satisfaccion'] = $evaluacionesDb->get('satisfaccion');
             $evaluaciones['final'] = $evaluacionesDb->get('final');
             
-            $recursos['dc3'] = $certificacionesDb->get('dc3');
         }
+        $estadoDc3 = $curso?->estadoDc3();
         
-        return view('cursos.paso6', compact('curso', 'recursos', 'evaluaciones')); 
+        return view('cursos.paso6', compact('curso', 'recursos', 'evaluaciones', 'estadoDc3')); 
     }
     
     public function guardarPaso6(Request $request) 
@@ -655,7 +669,7 @@ class CursoController extends Controller
             'DriveEvaluacionSatisfaccion' => 'nullable|string',
             'EvaluacionFinal' => 'nullable|string',
             'DriveEvaluacionFinal' => 'nullable|string',
-            'DC3' => 'nullable|string',
+            'DC3NoOtorga' => 'nullable|boolean',
         ]);
 
         $curso = Cursos::findOrFail(session('curso_id'));
@@ -717,15 +731,7 @@ class CursoController extends Controller
             }
         }
 
-        // Guardar DC3
-        if (!empty($v['DC3'])) {
-            CursoCertificacion::updateOrCreate(
-                ['curso_id' => $curso->id, 'tipo_certificacion' => 'dc3'],
-                ['nombre' => $v['DC3']]
-            );
-        } else {
-            $curso->certificaciones()->where('tipo_certificacion', 'dc3')->delete();
-        }
+        $this->guardarExcepcionDc3($curso, $request->boolean('DC3NoOtorga'));
         
         session(['cursos_paso6' => $v]);
         return redirect()->route('curso.paso7')->with('success', 'Paso 6 guardado correctamente');
@@ -935,8 +941,8 @@ class CursoController extends Controller
                 $evaluaciones['diagnostica'] = $evaluacionesDb->get('diagnostica');
                 $evaluaciones['satisfaccion'] = $evaluacionesDb->get('satisfaccion');
                 $evaluaciones['final'] = $evaluacionesDb->get('final');
-                $recursos['dc3'] = $certificacionesDb->get('dc3');
-                return view('cursos.edit-paso6', compact('curso', 'recursos', 'evaluaciones'));
+                $estadoDc3 = $curso->estadoDc3();
+                return view('cursos.edit-paso6', compact('curso', 'recursos', 'evaluaciones', 'estadoDc3'));
                 
             case 7:
                 return view('cursos.edit-paso7', array_merge(['curso' => $curso], $this->datosPaso7($curso)));
@@ -1122,15 +1128,7 @@ class CursoController extends Controller
                 }
             }
 
-            // Guardar DC3
-            if (!empty($request->DC3)) {
-                CursoCertificacion::updateOrCreate(
-                    ['curso_id' => $curso->id, 'tipo_certificacion' => 'dc3'],
-                    ['nombre' => $request->DC3]
-                );
-            } else {
-                $curso->certificaciones()->where('tipo_certificacion', 'dc3')->delete();
-            }
+            $this->guardarExcepcionDc3($curso, $request->boolean('DC3NoOtorga'));
         }
 
         if ($paso == 7) {
@@ -1281,7 +1279,8 @@ class CursoController extends Controller
             }
             $certificacion = $curso->certificaciones()->where('tipo_certificacion', $subCampo)->first();
             if ($subCampo === 'dc3') {
-                return $certificacion && !empty($certificacion->nombre);
+                // El DC3 se calcula: cuenta como completo cuando ya no está pendiente
+                return $curso->estadoDc3()['estado'] !== Cursos::DC3_PENDIENTE;
             }
             return $certificacion && (!empty($certificacion->nombre) || !empty($certificacion->drive_url) || !empty($certificacion->fecha_registro));
         }

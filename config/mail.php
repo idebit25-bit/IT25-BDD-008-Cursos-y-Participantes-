@@ -113,4 +113,7 @@ return [
         'name' => env('MAIL_FROM_NAME', 'Example'),
     ],
 
+    // Buzón que recibe los avisos de cambio de contraseña (por defecto, el mismo remitente)
+    'admin_address' => env('MAIL_ADMIN_ADDRESS', env('MAIL_FROM_ADDRESS')),
+
 ];
