@@ -135,6 +135,11 @@ class ArchivosController extends Controller
     // Método para abrir una carpeta y ver su contenido
     public function openFolder($carpeta = null)
     {
+        // Sin carpeta no hay nada que abrir; no se muestra la raíz de storage/app
+        if (blank($carpeta)) {
+            return redirect()->route('ruta.archivos')->with('error', 'Selecciona una carpeta para abrirla.');
+        }
+
         // Decodifica la ruta completa
         $carpeta = $carpeta ? urldecode($carpeta) : null;
 
