@@ -140,9 +140,12 @@
                         <i class="fas fa-file-csv"></i> CSV
                     </a>
                     @if(auth()->user()?->puesto != 'Operacion')
-                    <a href="{{ route('curso.iniciar') }}" class="btn-action btn-primary-c shadow-sm" style="width: auto; min-width: 110px; height: 40px;">
-                        <i class="fas fa-plus"></i> Nuevo
-                    </a>
+                    <form action="{{ route('curso.iniciar') }}" method="POST" class="d-inline">
+                        @csrf
+                        <button type="submit" class="btn-action btn-primary-c shadow-sm border-0" style="width: auto; min-width: 110px; height: 40px;">
+                            <i class="fas fa-plus"></i> Nuevo
+                        </button>
+                    </form>
                     @endif
                     @if(in_array(auth()->user()?->puesto, ['Programador', 'Administrador']))
                     <a href="{{ route('cursos.papelera') }}" class="btn-action btn-secondary-c shadow-sm" style="width: auto; min-width: 110px; height: 40px;">
@@ -287,9 +290,12 @@
                                              Subcursos de: <span class="fw-bold text-primary">{{ $curso->nombre }}</span>
                                         </h5>
                                         @if(auth()->user()?->puesto != 'Operacion')
-                                            <a href="{{ route('subcursos.iniciar', $curso->id) }}" class="btn-action btn-primary-c shadow-sm" style="width: auto; padding: 0 20px; height: 38px;">
-                                                <i class="fas fa-plus me-2"></i> Agregar Subcurso
-                                            </a>
+                                            <form action="{{ route('subcursos.iniciar', $curso->id) }}" method="POST" class="d-inline">
+                                                @csrf
+                                                <button type="submit" class="btn-action btn-primary-c shadow-sm border-0" style="width: auto; padding: 0 20px; height: 38px;">
+                                                    <i class="fas fa-plus me-2"></i> Agregar Subcurso
+                                                </button>
+                                            </form>
                                         @endif
                                     </div>
                                     <div id="sub-list-{{ $curso->id }}">

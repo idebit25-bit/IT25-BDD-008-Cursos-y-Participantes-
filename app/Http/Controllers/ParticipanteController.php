@@ -22,7 +22,7 @@ class ParticipanteController extends Controller
      */
 public function index(Request $request)
 {
-    $cursos = Cursos::all();
+    $cursos = Cursos::sinBorradores()->get();
 
     $query = Participantes::where('estatus', 1)->orderBy('id', 'asc');
 
@@ -59,7 +59,7 @@ public function index(Request $request)
 
 public function papelera(Request $request)
 {
-    $cursos = Cursos::all();
+    $cursos = Cursos::sinBorradores()->get();
     $query = Participantes::where('estatus', 0)->orderBy('updated_at', 'desc');
 
     if ($request->filled('search')) {
@@ -82,7 +82,7 @@ public function papelera(Request $request)
     public function create()
     {
         // Obtener todos los cursos disponibles
-        $cursos = Cursos::all();
+        $cursos = Cursos::sinBorradores()->get();
         return view('participantes.create', compact('cursos'));
     }
 
@@ -94,7 +94,7 @@ public function papelera(Request $request)
 
         // Buscar el participante por su ID (clave primaria)
         $participante = Participantes::findOrFail($id);
-        $cursos = Cursos::all(); // Obtener todos los cursos disponibles
+        $cursos = Cursos::sinBorradores()->get(); // Obtener todos los cursos disponibles
         return view('participantes.edit', compact('participante', 'cursos'));
     }
 
@@ -328,7 +328,7 @@ public function papelera(Request $request)
         $participantes = $query->with('cursos')->get();
 
         // Obtener todos los cursos disponibles para el filtro
-        $cursos = Cursos::all();
+        $cursos = Cursos::sinBorradores()->get();
 
         // Pasar datos a la vista
         return view('participantes.index', compact('participantes', 'cursos'));

@@ -11,7 +11,7 @@ class RegistroController extends Controller
 {
     public function index()
     {
-        $cursos = Cursos::all();
+        $cursos = Cursos::sinBorradores()->get();
         return view('registro.index', compact('cursos'));
     }
 

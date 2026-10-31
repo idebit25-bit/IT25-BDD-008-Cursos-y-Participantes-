@@ -94,7 +94,6 @@ Route::middleware(['auth', 'active'])->group(function () use ($rolEdicion, $rolE
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
         Route::post('/users/{id}/show-password', [UserController::class, 'showPassword'])->name('users.showPassword');
         Route::post('/users/verify-admin', [UserController::class, 'verifyAdminPassword'])->name('users.verifyAdmin');
-        Route::get('/users/show', [UserController::class, 'show'])->name('users.show');
 
         //Rutas para exportar y importar base de datos
         Route::get('/export-db', [DatabaseController::class, 'export'])->name('database.export');
@@ -200,8 +199,7 @@ Route::middleware(['auth', 'active'])->group(function () use ($rolEdicion, $rolE
         Route::post('/curso/paso7', [CursoController::class, 'guardarPaso7'])->name('curso.guardar-paso7');
 
         Route::post('/cursos/{id}/toggle-status', [CursoController::class, 'toggleStatus'])->name('cursos.toggle-status');
-        Route::resource('cursos', CursoController::class)->only(['create', 'store', 'edit', 'update']);
-        Route::get('/curso/editar', [CursoController::class, 'mostrarEdicion'])->name('curso.editar');
+        Route::resource('cursos', CursoController::class)->only(['edit']);
 
         Route::get('/cursos/{curso}/edit', [CursoController::class, 'edit'])->name('cursos.edit');
         Route::get('/cursos/{curso}/edit/{paso}', [CursoController::class, 'editPaso'])->name('cursos.edit.paso');
@@ -212,25 +210,23 @@ Route::middleware(['auth', 'active'])->group(function () use ($rolEdicion, $rolE
         //Forzado de finalizacion del curso
         Route::post('/curso/finalizacion-forzada', [CursoController::class, 'finalizacionForzada'])->name('curso.finalizacionForzada');
 
-        Route::get('/curso/iniciar', [CursoController::class, 'iniciarCurso'])->name('curso.iniciar');
-        Route::get('/curso/cancelar', [CursoController::class, 'cancelarCreacion'])->name('curso.cancelar');
+        // Iniciar y cancelar crean o borran borradores: sólo por POST con token CSRF
+        Route::post('/curso/iniciar', [CursoController::class, 'iniciarCurso'])->name('curso.iniciar');
+        Route::post('/curso/cancelar', [CursoController::class, 'cancelarCreacion'])->name('curso.cancelar');
 
         //Ruta para mostrar el subcurso a crear
-        Route::get('/subcursos/iniciar/{id}', [CursoController::class, 'iniciarSubcursos'])->name('subcursos.iniciar');
+        Route::post('/subcursos/iniciar/{id}', [CursoController::class, 'iniciarSubcursos'])->name('subcursos.iniciar');
         Route::post('/subcurso/preparar', [CursoController::class, 'prepararRutaSubcurso'])->name('curso.prepararSubcurso');
 
         // Rutas de carpetas locales usadas al crear cursos
         Route::post('/guardar-ruta-cursos', [RutaCursosController::class, 'guardar'])->name('guardar.ruta.cursos');
         Route::post('/guardar-ruta-archivos', [RutaArchivosController::class, 'guardarRuta'])->name('guardar.ruta.archivos');
         Route::get('/obtener-ruta-archivos', [RutaArchivosController::class, 'obtenerRuta'])->name('obtener.ruta.archivos');
-        Route::post('/crear-carpeta', [CursoController::class, 'crearCarpeta'])->name('crear.carpeta');
-        Route::post('/subir-archivo', [CursoController::class, 'subirArchivo'])->name('subir.archivo');
         //Obtener ruta
         Route::get('/obtener-ruta', [RutaArchivosController::class, 'obtenerRuta'])->name('ruta.obtener');
         Route::get('/verificar-ruta', [RutaArchivosController::class, 'verificarRuta'])->name('ruta.verificar');
         Route::get('/obtener-ultima-ruta', [RutaArchivosController::class, 'obtenerUltimaRuta'])->name('obtener.ultima.ruta');
         Route::get('/obtener-todas-las-rutas', [RutaArchivosController::class, 'obtenerTodasLasRutas']);
-        Route::post('/verificar-carpeta', [CursoController::class, 'verificarCarpeta'])->name('curso.verificarCarpeta');
         Route::post('/crear-carpeta-local', [RutaArchivosController::class, 'crearCarpeta'])
             ->name('crear.carpeta.local');
 

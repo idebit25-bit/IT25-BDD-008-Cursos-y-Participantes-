@@ -50,7 +50,7 @@ class CursoController extends Controller
         if (!is_string($orden) || !array_key_exists($orden, $ordenes)) $orden = 'id_asc';
         $request->session()->put('cursos.orden', $orden);
 
-        $query = Cursos::whereNull('parent_id')->whereIn('status', [0, 1]);
+        $query = Cursos::sinBorradores()->whereNull('parent_id')->whereIn('status', [0, 1]);
 
         if ($search) {
             $query->where(function($q) use ($search) {
@@ -71,7 +71,7 @@ class CursoController extends Controller
         [$columna, $direccion] = $ordenes[$orden];
         $cursos = $query->orderBy($columna, $direccion)->orderBy('id', 'asc')
             ->paginate(5)->withQueryString()->appends(['orden' => $orden]);
-        $subcursos = Cursos::whereNotNull('parent_id')->get(); 
+        $subcursos = Cursos::sinBorradores()->whereNotNull('parent_id')->get();
 
         return view('cursos.index', compact('cursos', 'subcursos', 'orden', 'vista'));
     }
@@ -79,7 +79,7 @@ class CursoController extends Controller
     public function obtenerSubcursos($cursoId, Request $request)
     {
         try {
-            $subcursos = Cursos::where('parent_id', $cursoId)->get()->map(function($sub) {
+            $subcursos = Cursos::sinBorradores()->where('parent_id', $cursoId)->get()->map(function($sub) {
                 return [
                     'id' => $sub->id,
                     'nomenclatura' => $sub->Nomenclatura ?: $sub->nomenclatura,
@@ -208,10 +208,8 @@ class CursoController extends Controller
         $cursoId = session('curso_id');
         if ($cursoId) {
             $curso = Cursos::find($cursoId);
-            if ($curso) {
-                if (str_starts_with($curso->nomenclatura, 'TEMP-')) {
-                    $curso->delete();
-                }
+            if ($curso && $curso->esBorrador()) {
+                $curso->eliminarBorrador();
             }
             session()->forget(['curso_id', 'cursos_paso1', 'cursos_paso2', 'cursos_paso3', 'cursos_paso4', 'cursos_paso5', 'cursos_paso6']);
         }
@@ -288,11 +286,13 @@ class CursoController extends Controller
 
     private function limpiarBorradoresSesion()
     {
+        Cursos::purgarBorradoresAbandonados();
+
         $oldId = session('curso_id');
         if ($oldId) {
             $oldCurso = Cursos::find($oldId);
-            if ($oldCurso && str_starts_with($oldCurso->nomenclatura, 'TEMP-')) {
-                $oldCurso->delete();
+            if ($oldCurso && $oldCurso->esBorrador()) {
+                $oldCurso->eliminarBorrador();
             }
             session()->forget(['curso_id', 'cursos_paso1', 'cursos_paso2', 'cursos_paso3', 'cursos_paso4', 'cursos_paso5', 'cursos_paso6']);
         }
@@ -335,6 +335,24 @@ class CursoController extends Controller
         return time() . '_' . uniqid() . '_' . $nombreLimpio . '.' . $extension;
     }
 
+    // Se validan todos los archivos antes de guardar cualquier dato del paso,
+    // para que un archivo inválido no deje el formulario guardado a medias.
+    private function validarArchivosCurso(Request $request): void
+    {
+        $reglas = [];
+        foreach (array_keys($request->allFiles()) as $campo) {
+            $reglas[$campo] = 'file|max:51200|extensions:' . implode(',', ArchivosController::EXTENSIONES_PERMITIDAS);
+        }
+
+        if ($reglas) {
+            $request->validate($reglas, [
+                'extensions' => 'Tipo de archivo no permitido. Formatos aceptados: ' . implode(', ', ArchivosController::EXTENSIONES_PERMITIDAS) . '.',
+                'max' => 'El archivo no debe pesar más de 50 MB.',
+                'file' => 'El archivo no se pudo subir.',
+            ]);
+        }
+    }
+
     private function guardarArchivosCurso($curso, $request, $archivosMap)
     {
         $cursoPath = storage_path('app/public/cursos/' . $curso->id);
@@ -349,11 +367,19 @@ class CursoController extends Controller
 
                 $file->move($cursoPath, $fileName);
                 $rutaPublica = 'cursos/' . $curso->id . '/' . $fileName;
-                
+
+                $anterior = CursoRecurso::where('curso_id', $curso->id)->where('tipo_recurso', $tipoRecurso)->value('url');
+
                 CursoRecurso::updateOrCreate(
                     ['curso_id' => $curso->id, 'tipo_recurso' => $tipoRecurso],
                     ['url' => $rutaPublica]
                 );
+
+                // El archivo reemplazado ya no lo enlaza nada; se borra para no dejar huérfanos.
+                // Sólo dentro de la carpeta de este curso (nunca el de un curso inicial heredado).
+                if ($anterior && $anterior !== $rutaPublica && str_starts_with($anterior, 'cursos/' . $curso->id . '/')) {
+                    Storage::disk('public')->delete($anterior);
+                }
             }
         }
     }
@@ -380,6 +406,16 @@ class CursoController extends Controller
         $cursoId = session('curso_id');
         $curso = Cursos::find($cursoId);
         $datosPadre = null;
+
+        // Un borrador lleva internamente "TEMP-..." y un nombre provisional; no se muestran.
+        // El subcurso propone la nomenclatura del curso inicial con su consecutivo y el mismo nombre.
+        // Sólo cambia lo que ve el formulario: nada se guarda hasta enviar el paso 1.
+        if ($curso && $curso->esBorrador()) {
+            $padre = $curso->cursoPadre;
+            $curso->nomenclatura = $padre ? $padre->siguienteNomenclaturaSubcurso() : '';
+            $curso->nombre = $padre ? $padre->nombre : '';
+        }
+
         return view('cursos.paso1', compact('curso', 'datosPadre'));
     }
 
@@ -487,6 +523,8 @@ class CursoController extends Controller
     
     public function guardarPaso3(Request $request) 
     {
+        $this->validarArchivosCurso($request);
+
         $v = $request->validate([
             'SinFecha' => 'nullable|string',
             'DriveSinFecha' => 'nullable|string',
@@ -552,6 +590,8 @@ class CursoController extends Controller
     
     public function guardarPaso4(Request $request) 
     {
+        $this->validarArchivosCurso($request);
+
         $v = $request->validate([
             'Temario' => 'nullable|string',
             'DriveTemario' => 'nullable|string',
@@ -613,6 +653,8 @@ class CursoController extends Controller
     
     public function guardarPaso5(Request $request) 
     {
+        $this->validarArchivosCurso($request);
+
         $v = $request->validate([
             'Digital' => 'nullable|string',
             'DriveDigital' => 'nullable|string',
@@ -676,6 +718,8 @@ class CursoController extends Controller
     
     public function guardarPaso6(Request $request) 
     {
+        $this->validarArchivosCurso($request);
+
         $v = $request->validate([
             'Presentacion' => 'nullable|string',
             'DrivePresentacion' => 'nullable|string',
@@ -704,21 +748,7 @@ class CursoController extends Controller
         }
 
         // Guardar archivo de presentación
-        if ($request->hasFile('archivoPresentacion') && $request->file('archivoPresentacion')->isValid()) {
-            $file = $request->file('archivoPresentacion');
-            $fileName = $this->nombreArchivoCurso($file, 'archivoPresentacion');
-            $cursoPath = storage_path('app/public/cursos/' . $curso->id);
-            if (!file_exists($cursoPath)) {
-                mkdir($cursoPath, 0777, true);
-            }
-            $file->move($cursoPath, $fileName);
-            $rutaPublica = 'cursos/' . $curso->id . '/' . $fileName;
-            
-            CursoRecurso::updateOrCreate(
-                ['curso_id' => $curso->id, 'tipo_recurso' => 'presentacion_archivo'],
-                ['url' => $rutaPublica]
-            );
-        }
+        $this->guardarArchivosCurso($curso, $request, ['archivoPresentacion' => 'presentacion_archivo']);
 
         // Guardar evaluaciones
         $evaluacionesMap = [
@@ -819,6 +849,8 @@ class CursoController extends Controller
     
     public function guardarPaso7(Request $request) 
     {
+        $this->validarArchivosCurso($request);
+
         $v = $request->validate([
             'FechaRegistroSTPS' => 'nullable|date',
             'FormatoDC5' => 'nullable|string',
@@ -970,6 +1002,8 @@ class CursoController extends Controller
 
     public function updatePaso(Request $request, Cursos $curso, $paso)
     {
+        $this->validarArchivosCurso($request);
+
         if ($paso == 1) {
             $request->validate([
                 'Nomenclatura' => 'required|string|max:255|unique:cursos,nomenclatura,' . $curso->id,
@@ -1102,21 +1136,7 @@ class CursoController extends Controller
             }
 
             // Guardar archivo de presentacion
-            if ($request->hasFile('archivoPresentacion') && $request->file('archivoPresentacion')->isValid()) {
-                $file = $request->file('archivoPresentacion');
-                $fileName = $this->nombreArchivoCurso($file, 'archivoPresentacion');
-                $cursoPath = storage_path('app/public/cursos/' . $curso->id);
-                if (!file_exists($cursoPath)) {
-                    mkdir($cursoPath, 0777, true);
-                }
-                $file->move($cursoPath, $fileName);
-                $rutaPublica = 'cursos/' . $curso->id . '/' . $fileName;
-                
-                CursoRecurso::updateOrCreate(
-                    ['curso_id' => $curso->id, 'tipo_recurso' => 'presentacion_archivo'],
-                    ['url' => $rutaPublica]
-                );
-            }
+            $this->guardarArchivosCurso($curso, $request, ['archivoPresentacion' => 'presentacion_archivo']);
 
             // Guardar evaluaciones
             $evaluacionesMap = [
@@ -1312,11 +1332,11 @@ class CursoController extends Controller
         $curso = Cursos::find(session('curso_id'));
         
         if ($curso) {
-            // Verificar que tenga al menos Nomenclatura y Nombre
-            if (empty($curso->nomenclatura) || empty($curso->nombre)) {
+            // Verificar que tenga al menos Nomenclatura y Nombre (un borrador TEMP- aún no tiene el paso 1 guardado)
+            if (empty($curso->nomenclatura) || empty($curso->nombre) || $curso->esBorrador()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'El curso debe tener al menos Nomenclatura y Nombre para finalizar.'
+                    'message' => 'Captura al menos la nomenclatura y el nombre del curso (paso 1) para finalizar.'
                 ], 400);
             }
             
@@ -1355,12 +1375,12 @@ class CursoController extends Controller
     
     public function exportarExcel() 
     { 
-        return Excel::download(new CursosExport(Cursos::where('status', 1)->get()), 'cursos.xlsx'); 
+        return Excel::download(new CursosExport(Cursos::sinBorradores()->where('status', 1)->get()), 'cursos.xlsx'); 
     }
     
     public function exportarCsv() 
     { 
-        return Excel::download(new CursosExport(Cursos::where('status', 1)->get()), 'cursos.csv'); 
+        return Excel::download(new CursosExport(Cursos::sinBorradores()->where('status', 1)->get()), 'cursos.csv'); 
     }
     
     public function rutas() 

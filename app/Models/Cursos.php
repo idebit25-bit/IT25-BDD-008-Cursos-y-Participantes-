@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\File;
 
 class Cursos extends Model
 {
@@ -21,6 +22,63 @@ class Cursos extends Model
         'status',
         'duracion',
     ];
+
+    // ============================================
+    // BORRADORES DE CREACIÓN
+    // ============================================
+    // Al iniciar un curso o subcurso se crea un registro "TEMP-..." que recibe su nomenclatura
+    // real en el paso 1. No es un curso todavía: no se lista ni se ofrece para inscripción.
+    public const PREFIJO_BORRADOR = 'TEMP-';
+    private const HORAS_VIDA_BORRADOR = 24;
+
+    public function scopeSinBorradores($query)
+    {
+        return $query->where('nomenclatura', 'not like', self::PREFIJO_BORRADOR . '%');
+    }
+
+    public function esBorrador(): bool
+    {
+        return str_starts_with((string) $this->nomenclatura, self::PREFIJO_BORRADOR);
+    }
+
+    // Nomenclatura sugerida para el siguiente subcurso: ID-A20 → ID-A20.1, ID-A20.2, ...
+    public function siguienteNomenclaturaSubcurso(): string
+    {
+        $prefijo = $this->nomenclatura . '.';
+
+        $ultimo = $this->subcursos()->pluck('nomenclatura')
+            ->filter(fn ($nomenclatura) => str_starts_with($nomenclatura, $prefijo))
+            ->map(fn ($nomenclatura) => substr($nomenclatura, strlen($prefijo)))
+            ->filter(fn ($consecutivo) => ctype_digit($consecutivo))
+            ->map(fn ($consecutivo) => (int) $consecutivo)
+            ->max() ?? 0;
+
+        // Por si el número ya lo ocupa otro curso (capturado a mano), se toma el siguiente libre
+        do {
+            $sugerida = $prefijo . ++$ultimo;
+        } while (static::where('nomenclatura', $sugerida)->exists());
+
+        return $sugerida;
+    }
+
+    // Borra el borrador junto con los archivos que alcanzó a subir (las tablas relacionadas caen en cascada)
+    public function eliminarBorrador(): void
+    {
+        File::deleteDirectory(storage_path('app/public/cursos/' . $this->id));
+        $this->delete();
+    }
+
+    // Borradores que alguien dejó a medias (cerró la pestaña sin terminar ni cancelar)
+    public static function purgarBorradoresAbandonados(): int
+    {
+        $abandonados = static::where('nomenclatura', 'like', self::PREFIJO_BORRADOR . '%')
+            ->where('created_at', '<', now()->subHours(self::HORAS_VIDA_BORRADOR))
+            ->get();
+
+        $abandonados->each->eliminarBorrador();
+
+        return $abandonados->count();
+    }
 
     // Relaciones
     public function subcursos()

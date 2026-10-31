@@ -1,6 +1,8 @@
 @extends('layouts.app')
 
 @section('content')
+@include('cursos.partials.form-cancelar-creacion')
+@include('cursos.partials.finalizacion-forzada')
 <style>
     .step-container {
         padding: 50px 0;
@@ -415,9 +417,9 @@
                                 <button type="button" class="btn btn-warning btn-custom shadow-sm" id="finalizarForzadoBtn">
                                     <i class="fas fa-exclamation-triangle me-2"></i> Finalización Forzada
                                 </button>
-                                <a href="{{ route('curso.cancelar') }}" class="btn btn-secondary btn-custom shadow-sm">
+                                <button type="submit" form="formCancelarCreacion" class="btn btn-secondary btn-custom shadow-sm">
                                     <i class="fas fa-times me-2"></i> Cancelar
-                                </a>
+                                </button>
                             </div>
                         </form>
                     </div>
@@ -456,7 +458,7 @@ document.addEventListener('DOMContentLoaded', function() {
             cancelButtonText: 'Cancelar'
         }).then((result) => {
             if (result.isConfirmed) {
-                fetch('{{ route("curso.finalizacionForzada") }}', {
+                finalizarConPasoActual('{{ route("curso.finalizacionForzada") }}', {
                     method: 'POST',
                     headers: {
                         'X-CSRF-TOKEN': '{{ csrf_token() }}'

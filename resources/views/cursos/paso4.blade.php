@@ -1,6 +1,8 @@
 @extends('layouts.app')
 
 @section('content')
+@include('cursos.partials.form-cancelar-creacion')
+@include('cursos.partials.finalizacion-forzada')
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 <style>
@@ -440,9 +442,9 @@
                                 <a href="{{ route('curso.paso3') }}" class="btn btn-secondary btn-custom shadow-sm">
                                     <i class="fas fa-arrow-left me-2"></i> Regresar
                                 </a>
-                                <a href="{{ route('curso.cancelar') }}" class="btn btn-danger btn-custom shadow-sm" onclick="return confirm('¿Estás seguro de que deseas cancelar la creación? Se perderán los datos ingresados.')">
+                                <button type="submit" form="formCancelarCreacion" class="btn btn-danger btn-custom shadow-sm" onclick="return confirm('¿Estás seguro de que deseas cancelar la creación? Se perderán los datos ingresados.')">
                                     <i class="fas fa-times me-2"></i> Cancelar
-                                </a>
+                                </button>
                             </div>
                         </form>
                     </div>
@@ -477,7 +479,7 @@ document.addEventListener('DOMContentLoaded', function() {
             cancelButtonText: 'Cancelar'
         }).then((result) => {
             if (result.isConfirmed) {
-                fetch('{{ route("curso.finalizacionForzada") }}', {
+                finalizarConPasoActual('{{ route("curso.finalizacionForzada") }}', {
                     method: 'POST',
                     headers: {
                         'X-CSRF-TOKEN': '{{ csrf_token() }}'
