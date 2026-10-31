@@ -21,6 +21,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use App\Models\Inscripcion;
 use App\Models\Participantes;
+use App\Services\DriveCarpetas;
 
 class CursoController extends Controller
 {
@@ -222,6 +223,18 @@ class CursoController extends Controller
         return view('cursos.show', compact('curso'));
     }
 
+    // Reintento manual cuando la carpeta no se pudo crear al guardar el paso 1
+    public function crearCarpetaDrive(Cursos $curso, DriveCarpetas $drive)
+    {
+        if (!$drive->configurado()) {
+            return back()->with('error', 'Drive no está configurado. Un administrador debe capturar la carpeta base en Configuraciones.');
+        }
+
+        return $drive->asegurarCarpetaCurso($curso)
+            ? back()->with('success', 'Carpeta de Drive lista.')
+            : back()->with('error', 'No se pudo crear la carpeta en Drive. Revisa el registro de errores.');
+    }
+
     public function edit(Cursos $curso)
     {
         $coloresPorPaso = $this->calcularProgresoPaso($curso);
@@ -396,6 +409,9 @@ class CursoController extends Controller
             'fecha_termino' => $validated['FechadeTermino'] ?? null,
             'duracion' => $validated['Duracioncurso'] ?? '',
         ]);
+
+        // Carpeta del curso en Drive con su nomenclatura y nombre (si Drive está configurado)
+        app(DriveCarpetas::class)->asegurarCarpetaCurso($curso);
 
         session(['cursos_paso1' => $validated]);
         return redirect()->route('curso.paso2');
@@ -971,6 +987,7 @@ class CursoController extends Controller
                 'duracion' => $request->Duracioncurso ?? '',
             ];
             $curso->update($data);
+            app(DriveCarpetas::class)->asegurarCarpetaCurso($curso);
         }
 
         if ($paso == 2) {

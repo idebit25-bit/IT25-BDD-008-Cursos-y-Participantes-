@@ -108,12 +108,20 @@
                         <span class="badge bg-primary mb-2">{{ $curso->Nomenclatura }}</span>
                         <h1>{{ $curso->nombre ?: $curso->NombredelCurso }}</h1>
                     </div>
-                    @if(auth()->user()->puesto != 'Operacion')
-                        <a href="{{ route('cursos.pdf', $curso->id) }}" class="btn btn-download shadow-sm">
-                            <i class="fas fa-file-pdf me-2"></i> Descargar
-                        </a>
-                    @endif
+                    <div class="d-flex flex-wrap gap-2">
+                        @include('cursos.partials.drive-carpeta')
+                        @if(auth()->user()->puesto != 'Operacion')
+                            <a href="{{ route('cursos.pdf', $curso->id) }}" class="btn btn-download shadow-sm">
+                                <i class="fas fa-file-pdf me-2"></i> Descargar
+                            </a>
+                        @endif
+                    </div>
                 </div>
+                @foreach(['success' => 'success', 'error' => 'danger'] as $clave => $color)
+                    @if(session($clave))
+                        <div class="alert alert-{{ $color }} m-3 mb-0">{{ session($clave) }}</div>
+                    @endif
+                @endforeach
 
                 <div class="card-body p-4 p-md-5">
                     <div class="row">

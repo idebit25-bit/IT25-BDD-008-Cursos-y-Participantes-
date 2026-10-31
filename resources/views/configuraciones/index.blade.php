@@ -263,6 +263,35 @@
         </div>
     </div>
 
+    <h2>Carpeta de Drive</h2>
+    <div class="card p-4 shadow-sm mb-4">
+        <form action="{{ route('configuraciones.drive') }}" method="POST">
+            @csrf
+            <label for="drive_carpeta_url" class="form-label">URL de la carpeta donde se guardan los cursos</label>
+            <div class="input-group mb-2">
+                <span class="input-group-text"><i class="fab fa-google-drive"></i></span>
+                <input type="text" name="drive_carpeta_url" id="drive_carpeta_url" class="form-control @error('drive_carpeta_url') is-invalid @enderror"
+                       value="{{ old('drive_carpeta_url', $drive->carpetaBaseUrl()) }}"
+                       placeholder="https://drive.google.com/drive/folders/...">
+                <button type="submit" class="btn btn-primary">Guardar</button>
+            </div>
+            @error('drive_carpeta_url')<div class="text-danger small mb-2">{{ $message }}</div>@enderror
+            <p class="small text-muted mb-1">
+                Al registrar un curso se crea aquí una carpeta con su nomenclatura y nombre; cada subcurso va dentro de la carpeta de su curso inicial.
+            </p>
+            @if($drive->configurado())
+                <span class="badge bg-success"><i class="fas fa-check me-1"></i>Conectado con Google Drive</span>
+            @elseif(!$drive->credencialesConfiguradas())
+                <span class="badge bg-warning text-dark"><i class="fas fa-exclamation-triangle me-1"></i>Falta configurar el acceso a Google Drive en el servidor</span>
+            @endif
+            @if($drive->correoCuentaServicio())
+                <p class="small text-muted mt-2 mb-0">
+                    Comparte la carpeta como <strong>Editor</strong> con: <code>{{ $drive->correoCuentaServicio() }}</code>
+                </p>
+            @endif
+        </form>
+    </div>
+
     <h2>Configuración del Logo</h2>
     <div class="card p-4 shadow-sm mb-4">
         <form action="{{ route('configuraciones.updateLogo') }}" method="POST" enctype="multipart/form-data">

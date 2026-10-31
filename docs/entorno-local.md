@@ -111,3 +111,20 @@ php artisan tinker --execute="Mail::raw('Prueba de correo del Gestor', fn(\$m) =
 - El enlace del correo usa `APP_URL`; en local apunta a `http://127.0.0.1:8000` y sólo abre en el mismo equipo.
 - Si el envío falla, el usuario ve "No se pudo enviar el correo" y el detalle queda en `storage/logs/laravel.log`. Si falla el aviso al administrador, la contraseña sí se cambia.
 - 30/10/2026: desde la red de trabajo no salen los puertos SMTP (465, 587 ni 25, tampoco a Gmail). Para probar en local hay que usar otra red (p. ej. datos del celular) o probar directamente en el hosting.
+
+## Carpeta de Drive por curso
+
+Al guardar el paso 1 de un curso (crear o editar) se crea en Drive la carpeta `NOMENCLATURA - Nombre` dentro de la carpeta base; si después cambia la nomenclatura o el nombre, la carpeta se renombra. Cada subcurso va dentro de la carpeta de su curso inicial. El enlace queda en `cursos.drive_carpeta_url` y aparece como botón "Carpeta en Drive" en el detalle y en la edición del curso. Si Drive falla, el curso se guarda igual, el error queda en `storage/logs/laravel.log` y aparece el botón "Crear carpeta en Drive" para reintentar.
+
+Activación (una sola vez, con la cuenta de Google dueña de la carpeta):
+
+1. En https://console.cloud.google.com crear un proyecto y habilitar **Google Drive API**.
+2. En *IAM y administración → Cuentas de servicio* crear una cuenta, y en *Claves* agregar una clave **JSON**.
+3. Guardar el archivo como `storage/app/google-drive.json` (está ignorado por git). En `.env`:
+   `GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON=storage/app/google-drive.json` y `php artisan config:clear`.
+4. En Drive, compartir la carpeta base como **Editor** con el correo de la cuenta de servicio (`...@...iam.gserviceaccount.com`; también se muestra en Configuraciones).
+5. En *Configuraciones → Carpeta de Drive* pegar la URL de la carpeta base y guardar. Debe aparecer "Conectado con Google Drive".
+
+Alternativa: OAuth con `GOOGLE_DRIVE_CLIENT_ID`, `GOOGLE_DRIVE_CLIENT_SECRET` y `GOOGLE_DRIVE_REFRESH_TOKEN`. Si la app de OAuth queda en modo "Prueba", Google vence el refresh token a los 7 días.
+
+Los cursos que ya existían obtienen su carpeta la próxima vez que se guarde su paso 1 o con el botón "Crear carpeta en Drive". Los archivos que se cargan en los pasos se siguen guardando en el servidor; subirlos a esa carpeta queda para RF-03.

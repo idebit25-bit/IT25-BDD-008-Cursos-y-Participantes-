@@ -736,7 +736,7 @@ select,
   @endif
 
    <li class="nav-item">
-        <a href="https://drive.google.com/drive/folders/1HRJ_UliysPgzUOm1_XvcLR4MSuAjdODD?usp=sharing" class="nav-link menu-item {{ request()->is('Usuario') ? 'active' : '' }}">
+        <a href="{{ $setting?->drive_carpeta_url ?: 'https://drive.google.com/drive/folders/1HRJ_UliysPgzUOm1_XvcLR4MSuAjdODD?usp=sharing' }}" target="_blank" rel="noopener" class="nav-link menu-item {{ request()->is('Usuario') ? 'active' : '' }}">
             <i class="fa-solid fa-folder"></i><span>Carpeta de Drive</span>
         </a>
   </li>

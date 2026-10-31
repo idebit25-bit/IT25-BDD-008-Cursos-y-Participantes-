@@ -10,5 +10,5 @@ class Setting extends Model
     //
     use HasFactory;
 
-    protected $fillable = ['logo'];
+    protected $fillable = ['logo', 'drive_carpeta_url'];
 }

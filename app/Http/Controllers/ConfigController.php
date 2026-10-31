@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Cursos;
 use App\Models\Setting;
 use App\Models\ParticipantActionLog;
+use App\Services\DriveCarpetas;
 
 class ConfigController extends Controller
 {
@@ -31,8 +32,10 @@ class ConfigController extends Controller
             ->take(10)
             ->get();
 
+        $drive = app(DriveCarpetas::class);
+
         // Pasar los logs a la vista
-        return view('configuraciones.index', compact('logs', 'currentDbConnection', 'currentLogo','cursos', 'participantLogs'));
+        return view('configuraciones.index', compact('logs', 'currentDbConnection', 'currentLogo','cursos', 'participantLogs', 'drive'));
     }
 
      public function Cursos_Acciones()
@@ -200,6 +203,28 @@ class ConfigController extends Controller
         $setting->save();
 
         return redirect()->back()->with('success', 'Logo actualizado correctamente.');
+    }
+
+    // Carpeta base de Drive donde se crea una carpeta por curso
+    public function guardarCarpetaDrive(Request $request, DriveCarpetas $drive)
+    {
+        $request->validate([
+            'drive_carpeta_url' => ['nullable', 'string', 'max:500', function ($attribute, $value, $fail) {
+                if ($value && !DriveCarpetas::extraerId($value)) {
+                    $fail('Pega la URL de una carpeta de Drive (https://drive.google.com/drive/folders/...).');
+                }
+            }],
+        ]);
+
+        $setting = Setting::firstOrNew(['id' => 1]);
+        $setting->drive_carpeta_url = $request->filled('drive_carpeta_url') ? trim($request->drive_carpeta_url) : null;
+        $setting->save();
+
+        if ($setting->drive_carpeta_url && !$drive->credencialesConfiguradas()) {
+            return redirect()->back()->with('success', 'Carpeta guardada. Falta configurar el acceso a Google Drive en el servidor para crear las carpetas de los cursos.');
+        }
+
+        return redirect()->back()->with('success', 'Carpeta de Drive guardada.');
     }
 
     public function mostrarLogs()

@@ -73,7 +73,15 @@
 </style>
 
 <div class="container">
-    <h2 class="mb-4">Editar Curso: <span class="text-primary">{{ $curso->NombredelCurso }}</span></h2>
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+        <h2 class="mb-0">Editar Curso: <span class="text-primary">{{ $curso->NombredelCurso }}</span></h2>
+        @include('cursos.partials.drive-carpeta')
+    </div>
+    @foreach(['success' => 'success', 'error' => 'danger'] as $clave => $color)
+        @if(session($clave))
+            <div class="alert alert-{{ $color }}">{{ session($clave) }}</div>
+        @endif
+    @endforeach
 
     <div class="row">
         @for ($paso = 1; $paso <= 7; $paso++)

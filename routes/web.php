@@ -110,6 +110,7 @@ Route::middleware(['auth', 'active'])->group(function () use ($rolEdicion, $rolE
         //Actualizar el logo
         Route::post('/configuraciones/update-logo', [ConfigController::class, 'updateLogo'])->name('configuraciones.updateLogo');
         Route::post('/configuraciones/update-logo-from-list', [ConfigController::class, 'updateLogoFromList'])->name('configuraciones.updateLogoFromList');
+        Route::post('/configuraciones/drive', [ConfigController::class, 'guardarCarpetaDrive'])->name('configuraciones.drive');
         Route::get('/course-action-logs', [CourseActionLogController::class, 'index'])->name('course-action-logs.index');
 
         // Ruta para exportar las tablas
@@ -206,6 +207,7 @@ Route::middleware(['auth', 'active'])->group(function () use ($rolEdicion, $rolE
         Route::get('/cursos/{curso}/edit/{paso}', [CursoController::class, 'editPaso'])->name('cursos.edit.paso');
         Route::put('/cursos/{curso}/update/{paso}', [CursoController::class, 'updatePaso'])->name('cursos.update.paso');
         Route::post('/cursos/{curso}/stps/usar-curso-inicial', [CursoController::class, 'usarStpsCursoInicial'])->name('cursos.stps.usar-inicial');
+        Route::post('/cursos/{curso}/drive/carpeta', [CursoController::class, 'crearCarpetaDrive'])->name('cursos.drive.carpeta');
 
         //Forzado de finalizacion del curso
         Route::post('/curso/finalizacion-forzada', [CursoController::class, 'finalizacionForzada'])->name('curso.finalizacionForzada');
