@@ -187,6 +187,7 @@
                                     <input type="password" name="password" id="password" class="form-control" placeholder="Dejar en blanco para mantener" readonly>
                                     <span class="input-group-text d-none editing-indicator">Modificado</span>
                                 </div>
+                                <small class="form-text text-muted">{{ \App\Models\User::TEXTO_REGLA_CONTRASENA }}</small>
                             </div>
 
                             <div class="col-md-6 mb-4">

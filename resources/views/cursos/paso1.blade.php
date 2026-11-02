@@ -585,15 +585,15 @@ function actualizarEstadoGeneral() {
     if (vacios > 0) {
         // Hay campos vacíos - ROJO
         indicadorGeneral.className = 'estado-indicador estado-rojo';
-        textoEstado.textContent = `⚠️ ${vacios} campo(s) vacío(s) - Requiere atención`;
+        textoEstado.textContent = `${vacios} campo(s) vacío(s) - Requiere atención`;
     } else if (incompletos > 0) {
         // Hay campos incompletos - AMARILLO
         indicadorGeneral.className = 'estado-indicador estado-amarillo';
-        textoEstado.textContent = `🟡 ${incompletos} campo(s) incompleto(s) - Revisar`;
+        textoEstado.textContent = `${incompletos} campo(s) incompleto(s) - Revisar`;
     } else if (completos === total) {
         // Todos los campos completos - VERDE
         indicadorGeneral.className = 'estado-indicador estado-verde';
-        textoEstado.textContent = '✅ Todos los campos completos - Listo para guardar';
+        textoEstado.textContent = 'Todos los campos completos - Listo para guardar';
     } else {
         // Estado por defecto
         indicadorGeneral.className = 'estado-indicador';

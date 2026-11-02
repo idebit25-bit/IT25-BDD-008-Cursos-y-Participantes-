@@ -16,7 +16,8 @@ use Illuminate\Support\Facades\Password;
 
 class ResetPasswordController extends Controller
 {
-    private const MINUTOS_VIGENCIA_TOKEN = 60;
+    // Vigencia del enlace de restablecimiento (también se muestra en el correo)
+    public const MINUTOS_VIGENCIA_TOKEN = 5;
 
     public function showResetForm(Request $request, $token = null)
     {
@@ -28,8 +29,10 @@ class ResetPasswordController extends Controller
         // Validar la solicitud
         $request->validate([
             'email' => 'required|email',
-            'password' => 'required|confirmed|min:8',
+            'password' => array_merge(['required'], User::reglasContrasena()),
             'token' => 'required',
+        ], User::mensajesContrasena() + [
+            'token.required' => 'El enlace de restablecimiento no es válido. Solicita uno nuevo.',
         ]);
 
         // Verificar el token (guardado con hash) y su vigencia
@@ -51,10 +54,21 @@ class ResetPasswordController extends Controller
             return back()->withErrors(['email' => $mensaje]);
         }
 
-        // Actualizar la contraseña
+        if (Hash::check($request->password, $user->password)) {
+            $mensaje = 'La nueva contraseña debe ser distinta a la actual.';
+            if ($request->expectsJson()) {
+                return response()->json(['errors' => ['password' => [$mensaje]]], 422);
+            }
+            return back()->withErrors(['password' => $mensaje]);
+        }
+
+        // Actualizar la contraseña y cerrar cualquier sesión abierta con la anterior
         $user->password = Hash::make($request->password);
-        $user->setRememberToken(Str::random(60));
+        $user->cerrarSesiones();
         $user->save();
+
+        // El enlace se invalida antes de enviar correos, que pueden tardar
+        DB::table('password_resets')->where('email', $request->email)->delete();
 
         // Disparar el evento PasswordReset
         event(new PasswordReset($user));
@@ -73,8 +87,15 @@ class ResetPasswordController extends Controller
             }
         }
 
-        // Eliminar el registro del token
-        DB::table('password_resets')->where('email', $request->email)->delete();
+        // Avisar también al dueño de la cuenta, por si no fue quien la cambió
+        try {
+            Mail::send('emails.password_changed_user', ['user' => $user, 'time' => $time], function ($message) use ($user) {
+                $message->to($user->email);
+                $message->subject('Tu contraseña fue cambiada - Gestor Instituto I-DEB');
+            });
+        } catch (\Throwable $e) {
+            Log::error('No se pudo avisar al usuario del cambio de contraseña: ' . $e->getMessage());
+        }
 
         // Redirigir al usuario con un mensaje de éxito
         if ($request->expectsJson()) {

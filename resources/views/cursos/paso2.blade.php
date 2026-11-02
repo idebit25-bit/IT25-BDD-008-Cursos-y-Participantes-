@@ -204,9 +204,9 @@
                                                 class="form-select @error('modalidad') is-invalid @enderror" 
                                                 onchange="validarSelect(this)">
                                                 <option value="" disabled {{ old('modalidad', $curso->modalidad ?? session('cursos_paso2.modalidad')) ? '' : 'selected' }}>Seleccione una modalidad</option>
-                                                <option value="virtual" {{ old('modalidad', $curso->modalidad ?? session('cursos_paso2.modalidad')) == 'virtual' ? 'selected' : '' }}>💻 Virtual</option>
-                                                <option value="presencial" {{ old('modalidad', $curso->modalidad ?? session('cursos_paso2.modalidad')) == 'presencial' ? 'selected' : '' }}>🏫 Presencial</option>
-                                                <option value="mixto" {{ old('modalidad', $curso->modalidad ?? session('cursos_paso2.modalidad')) == 'mixto' ? 'selected' : '' }}>🔄 Mixto</option>
+                                                <option value="virtual" {{ old('modalidad', $curso->modalidad ?? session('cursos_paso2.modalidad')) == 'virtual' ? 'selected' : '' }}>Virtual</option>
+                                                <option value="presencial" {{ old('modalidad', $curso->modalidad ?? session('cursos_paso2.modalidad')) == 'presencial' ? 'selected' : '' }}>Presencial</option>
+                                                <option value="mixto" {{ old('modalidad', $curso->modalidad ?? session('cursos_paso2.modalidad')) == 'mixto' ? 'selected' : '' }}>Mixto</option>
                                             </select>
                                             @error('modalidad')
                                                 <div class="invalid-feedback">{{ $message }}</div>
@@ -365,10 +365,10 @@ function actualizarEstadoGeneral() {
     
     if (vacios > 0) {
         indicadorGeneral.className = 'estado-indicador estado-rojo';
-        textoEstado.textContent = `⚠️ ${vacios} campo(s) sin seleccionar - Requiere atención`;
+        textoEstado.textContent = `${vacios} campo(s) sin seleccionar - Requiere atención`;
     } else if (completos === total) {
         indicadorGeneral.className = 'estado-indicador estado-verde';
-        textoEstado.textContent = '✅ Todos los campos completos - Listo para guardar';
+        textoEstado.textContent = 'Todos los campos completos - Listo para guardar';
     } else {
         indicadorGeneral.className = 'estado-indicador';
         textoEstado.textContent = 'Verificando campos...';

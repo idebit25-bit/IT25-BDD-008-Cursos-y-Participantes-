@@ -34,7 +34,10 @@ return [
     // Carpetas de cursos en Google Drive (App\Services\DriveCarpetas).
     // Basta una de las dos formas de acceso: cuenta de servicio (archivo JSON) u OAuth con refresh token.
     'google_drive' => [
-        'service_account' => env('GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON') ? base_path(env('GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON')) : null,
+        // Ruta relativa al proyecto o absoluta (en el servidor conviene guardarla fuera de la carpeta pública)
+        'service_account' => ($llave = env('GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON'))
+            ? (preg_match('#^([A-Za-z]:)?[/\x5C]#', $llave) ? $llave : base_path($llave))
+            : null,
         'client_id' => env('GOOGLE_DRIVE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_DRIVE_CLIENT_SECRET'),
         'refresh_token' => env('GOOGLE_DRIVE_REFRESH_TOKEN'),

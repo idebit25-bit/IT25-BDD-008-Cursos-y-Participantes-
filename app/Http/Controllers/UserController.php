@@ -55,8 +55,8 @@ class UserController extends Controller
             'puesto' => 'required|in:' . implode(',', self::PUESTOS),
             'telefono' => 'required|string|max:15',
             'edad' => 'required|integer|min:18',
-            'password' => 'nullable|min:8|confirmed', // La contraseña es opcional
-        ], [
+            'password' => array_merge(['nullable'], User::reglasContrasena()), // La contraseña es opcional
+        ], User::mensajesContrasena() + [
             'edad.min' => 'La edad mínima permitida es de 18 años.',
         ]);
 
@@ -69,8 +69,10 @@ class UserController extends Controller
         $user->edad = $request->edad;
 
         // Si se proporciona una nueva contraseña, actualizarla (sólo se guarda el hash)
+        // y se cierran sus sesiones abiertas (si se edita a sí mismo, conserva la actual)
         if ($request->filled('password')) {
             $user->password = Hash::make($request->password);
+            $user->cerrarSesiones($user->is(Auth::user()) ? $request->session()->getId() : null);
         }
 
         // Guardar los cambios en la base de datos
@@ -87,9 +89,9 @@ class UserController extends Controller
             'email' => 'required|email|unique:users',
             'telefono' => 'required|string|max:15',
             'edad' => 'required|integer|min:18|max:90',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => array_merge(['required'], User::reglasContrasena()),
             'puesto' => 'required|in:' . implode(',', self::PUESTOS)
-        ], [
+        ], User::mensajesContrasena() + [
             'edad.min' => 'La edad mínima permitida es de 18 años.',
             'edad.max' => 'La edad máxima permitida es de 90 años.',
         ]);

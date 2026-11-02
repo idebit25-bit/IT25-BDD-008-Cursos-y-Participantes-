@@ -219,6 +219,7 @@
                     <i id="toggleIcon1" class="bi bi-eye-slash"></i>
                 </button>
             </div>
+            <small class="form-text text-muted d-block mb-3">{{ \App\Models\User::TEXTO_REGLA_CONTRASENA }}</small>
 
             <!-- Campo de confirmación de contraseña -->
             <div class="form-group password-toggle">

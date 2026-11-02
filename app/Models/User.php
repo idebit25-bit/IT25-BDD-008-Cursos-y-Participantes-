@@ -6,6 +6,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  *
@@ -88,4 +90,34 @@ class User extends Authenticatable
         ];
     }
 
+    // ============================================
+    // CONTRASEÑAS
+    // ============================================
+    // Misma regla para recuperación, alta y edición de usuarios
+    public const TEXTO_REGLA_CONTRASENA = 'Mínimo 8 caracteres, con al menos una letra y un número.';
+
+    public static function reglasContrasena(): array
+    {
+        return ['string', 'min:8', 'regex:/[A-Za-z]/', 'regex:/[0-9]/', 'confirmed'];
+    }
+
+    public static function mensajesContrasena(): array
+    {
+        return [
+            'password.required' => 'Escribe la nueva contraseña.',
+            'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
+            'password.regex' => 'La contraseña debe tener al menos una letra y un número.',
+            'password.confirmed' => 'Las contraseñas no coinciden.',
+        ];
+    }
+
+    // Tras cambiar la contraseña nadie debe seguir dentro con una sesión anterior
+    // (sesiones guardadas en la tabla "sessions" y cookies de "recordarme")
+    public function cerrarSesiones(?string $exceptoSesion = null): void
+    {
+        DB::table('sessions')->where('user_id', $this->id)
+            ->when($exceptoSesion, fn ($q) => $q->where('id', '!=', $exceptoSesion))
+            ->delete();
+        $this->setRememberToken(Str::random(60));
+    }
 }

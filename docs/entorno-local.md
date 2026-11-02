@@ -128,3 +128,13 @@ Activación (una sola vez, con la cuenta de Google dueña de la carpeta):
 Alternativa: OAuth con `GOOGLE_DRIVE_CLIENT_ID`, `GOOGLE_DRIVE_CLIENT_SECRET` y `GOOGLE_DRIVE_REFRESH_TOKEN`. Si la app de OAuth queda en modo "Prueba", Google vence el refresh token a los 7 días.
 
 Los cursos que ya existían obtienen su carpeta la próxima vez que se guarde su paso 1 o con el botón "Crear carpeta en Drive". Los archivos que se cargan en los pasos se siguen guardando en el servidor; subirlos a esa carpeta queda para RF-03.
+
+### Seguridad de la llave de Drive
+
+- El `.env` sólo guarda la **ruta** de la llave; el secreto es el archivo JSON (contiene la clave privada de la cuenta de servicio).
+- La llave no está en git (`storage/app/.gitignore`) ni en ningún commit. El explorador "Ruta archivos" sólo trabaja dentro de `storage/app/public/mi_carpeta` y rechaza `..`, así que no llega a ella.
+- En el servidor, guardarla **fuera de la carpeta pública** del hosting y apuntar a ella con ruta absoluta, p. ej. `GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON=/home/<usuario>/credenciales/google-drive.json`, con permisos `600`.
+- El dominio debe apuntar a la carpeta `public/` del proyecto. Si todo el proyecto queda dentro de `public_html`, `.env` y `storage/` se podrían descargar desde el navegador.
+- `APP_DEBUG=false` en producción: la página de error de depuración muestra detalles de configuración.
+- La cuenta de servicio sólo ve lo que se comparte con ella. Compartir únicamente la carpeta base.
+- Si la llave se filtra: Google Cloud → Cuentas de servicio → Claves → eliminar la clave y crear otra.

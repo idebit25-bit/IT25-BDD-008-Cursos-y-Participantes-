@@ -23,7 +23,8 @@ class ForgotPasswordController extends Controller
         $request->validate(['email' => 'required|email']);
 
         // Mismo mensaje exista o no el correo, para no revelar qué cuentas están registradas
-        $mensajeEnviado = 'Si el correo está registrado, recibirás un enlace de restablecimiento.';
+        $mensajeEnviado = 'Si el correo está registrado, recibirás un enlace de restablecimiento. Úsalo en los próximos '
+            . ResetPasswordController::MINUTOS_VIGENCIA_TOKEN . ' minutos; si vence, solicita uno nuevo.';
 
         // Verificar si el usuario existe y está activo
         $user = User::where('email', $request->email)->where('estatus', 1)->first();
@@ -49,7 +50,8 @@ class ForgotPasswordController extends Controller
         try {
             // Enviar el correo
             Mail::send('auth.passwords.email_reset_link', [
-                'url' => $url
+                'url' => $url,
+                'minutos' => ResetPasswordController::MINUTOS_VIGENCIA_TOKEN,
             ], function ($message) use ($request) {
                 $message->to($request->email);
                 $message->subject('Restablecer contraseña - Gestor Instituto I-DEB');

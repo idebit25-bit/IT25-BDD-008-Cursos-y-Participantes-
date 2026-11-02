@@ -179,6 +179,7 @@
                                                     <i class="fas fa-eye" id="eye-password"></i>
                                                 </button>
                                             </div>
+                                            <small class="form-text text-muted">{{ \App\Models\User::TEXTO_REGLA_CONTRASENA }}</small>
                                         </div>
                                         <div class="col-md-6 mb-3">
                                             <label for="password_confirmation" class="form-label small fw-bold text-muted">Confirmar Contraseña</label>
